@@ -1,0 +1,3 @@
+%{
+  "rsa_ex": {:hex, :rsa_ex, "0.4.0", "e28dd7dc5236e156df434af0e4aa822384c8866c928e17b785d4edb7c253b558", [:mix], [], "hexpm"},
+}
