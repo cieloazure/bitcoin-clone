@@ -5,10 +5,10 @@ defmodule Bitcoin.NodeTest do
     {:ok, seed} = SeedServer.start_link([])
     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
     blockchain = :sys.get_state(node)[:blockchain]
-    {n, g} = :sys.get_state(blockchain)
+    {_n, g} = :sys.get_state(blockchain)
     Bitcoin.Node.sync(node)
     Process.sleep(1000)
-    {n, g1} = :sys.get_state(blockchain)
+    {_n, g1} = :sys.get_state(blockchain)
     assert g == g1
   end
 
@@ -29,9 +29,10 @@ defmodule Bitcoin.NodeTest do
 
     {:ok, node2} = Bitcoin.Node.start_link(ip_addr: "192.168.0.2", seed: seed)
     blockchain2 = :sys.get_state(node2)[:blockchain]
-    {n, g1} = :sys.get_state(blockchain2)
-    Bitcoin.Node.sync(node)
-    {n, g2} = :sys.get_state(blockchain1)
+    {_n, g1} = :sys.get_state(blockchain2)
+    Process.sleep(5000)
+    Bitcoin.Node.sync(node2)
+    {_n, g2} = :sys.get_state(blockchain1)
     Process.sleep(5000)
     assert g1 != g2
     assert length(g2) > length(g1)

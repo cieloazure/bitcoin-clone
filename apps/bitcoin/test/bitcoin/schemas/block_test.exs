@@ -14,6 +14,7 @@ defmodule Bitcoin.Schemas.BlockTest do
 
   test "update the block with new values" do
     block = %Bitcoin.Schemas.Block{block_index: 0, block_size: 10}
+    assert Map.get(block, :block_index) == 0
     {_, block} = Map.get_and_update(block, :block_index, fn item -> {item, 1} end)
     assert Map.get(block, :block_index) == 1
   end

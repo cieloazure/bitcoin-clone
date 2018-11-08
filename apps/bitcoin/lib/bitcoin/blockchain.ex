@@ -108,11 +108,14 @@ defmodule Bitcoin.Blockchain do
     # Find items after the top_hash
     items = Enum.sort(store, fn op1, op2 -> Map.get(op1, :height) <= Map.get(op2, :height) end)
     index = Enum.find_index(items, fn item -> Map.get(item, :hash) == top_hash end)
-    new_items = Enum.take(items, -(length(items) - (index + 1)))
 
-    # Send those items  to the node using :inv message
-    # Send to the blockchain process of the node
-    send(node, {:blockchain_handler, :inv, new_items})
+    if(!is_nil(index) and !is_nil(items)) do
+      new_items = Enum.take(items, -(length(items) - (index + 1)))
+
+      # Send those items  to the node using :inv message
+      # Send to the blockchain process of the node
+      send(node, {:blockchain_handler, :inv, new_items})
+    end
   end
 
   # save_inventory

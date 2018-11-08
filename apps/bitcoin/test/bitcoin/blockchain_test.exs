@@ -14,7 +14,6 @@ defmodule Bitcoin.BlockchainTest do
     {:ok, seed} = SeedServer.start_link([])
     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
     blockchain = :sys.get_state(node)[:blockchain]
-    {n, g} = :sys.get_state(blockchain)
     assert Bitcoin.Blockchain.get_top_hash(blockchain) == genesis_block()
   end
 
@@ -22,13 +21,13 @@ defmodule Bitcoin.BlockchainTest do
     {:ok, seed} = SeedServer.start_link([])
     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
     blockchain = :sys.get_state(node)[:blockchain]
-    {n, g} = :sys.get_state(blockchain)
+    {_n, g} = :sys.get_state(blockchain)
 
     new_items = %Bitcoin.Schemas.Block{}
 
     send(blockchain, {:handle_message, :inv, new_items})
 
-    {n, g1} = :sys.get_state(blockchain)
+    {_n, g1} = :sys.get_state(blockchain)
     assert g1 == [new_items | g]
   end
 
@@ -36,7 +35,7 @@ defmodule Bitcoin.BlockchainTest do
     {:ok, seed} = SeedServer.start_link([])
     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
     blockchain = :sys.get_state(node)[:blockchain]
-    {n, g} = :sys.get_state(blockchain)
+    {_n, g} = :sys.get_state(blockchain)
 
     new_items =
       for _n <- 1..10 do
@@ -44,7 +43,7 @@ defmodule Bitcoin.BlockchainTest do
       end
 
     send(blockchain, {:handle_message, :inv, new_items})
-    {n, g1} = :sys.get_state(blockchain)
+    {_n, g1} = :sys.get_state(blockchain)
     assert g1 == new_items ++ g
   end
 
@@ -52,7 +51,6 @@ defmodule Bitcoin.BlockchainTest do
     {:ok, seed} = SeedServer.start_link([])
     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
     blockchain = :sys.get_state(node)[:blockchain]
-    {n, g} = :sys.get_state(blockchain)
     hashes = ["1234", "5678", "2343"]
     heights = [1, 2, 3]
 
@@ -62,7 +60,6 @@ defmodule Bitcoin.BlockchainTest do
       end
 
     send(blockchain, {:handle_message, :inv, new_items})
-    {n, g1} = :sys.get_state(blockchain)
 
     send(blockchain, {:handle_message, :getblocks, {"0000", self()}})
 
