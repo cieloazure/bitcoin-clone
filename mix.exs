@@ -1,4 +1,4 @@
-defmodule Gatorcoin.MixProject do
+defmodule BitcoinClone.MixProject do
   use Mix.Project
 
   def project do
