@@ -70,6 +70,7 @@ defmodule Bitcoin.Node do
 
   Callback to delegate the tasks to blockchain
   """
+  @impl true
   def handle_info({:blockchain_handler, message, payload}, state) do
     send(state[:blockchain], {:handle_message, message, payload})
   end
