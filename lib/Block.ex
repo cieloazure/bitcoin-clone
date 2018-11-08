@@ -30,8 +30,6 @@ defmodule Block do
       transactions: transactions
     ]
 
-
-
     {:ok, block}
   end
 
@@ -71,7 +69,8 @@ defmodule Block do
   def nonce_calc(input, difficulty, nonce \\ 0) do
     string = input <> Integer.to_string(nonce)
     hash = :crypto.hash(:sha256, string)
-    n_zeros = difficulty*8
+    n_zeros = difficulty * 8
+
     nonce =
       if <<0::size(n_zeros)>> == :binary.part(hash, 0, difficulty) do
         nonce
