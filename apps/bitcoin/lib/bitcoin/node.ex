@@ -40,7 +40,9 @@ defmodule Bitcoin.Node do
       block_index: 0,
       block_size: 10,
       tx_counter: 1,
-      txs: [genesis_transaction]
+      txs: [genesis_transaction],
+      height: 0,
+      hash: "0000"
     }
   end
 end

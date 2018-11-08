@@ -172,14 +172,29 @@ defmodule Chord.Node do
     GenServer.cast(node, {:failed_successor})
   end
 
+  @doc """
+  Chord.Node.handle_broadcast
+
+  Decide what to do when a broadcast message is received; it may either choose to propogate the broadcast or stop propogation
+  """
   def handle_broadcast(node, message, payload \\ nil) do
     GenServer.cast(node, {:broadcast, message, payload})
   end
 
+  @doc """
+  Chord.Node.propogate_broadcast
+
+  Propogate the broadcast to the node's peers
+  """
   def propogate_broadcast(node, message, payload \\ nil) do
     GenServer.cast(node, {:propogate_broadcast, message, payload})
   end
 
+  @doc """
+  Chord.Node.send_peers
+
+  Send a message only to the node's peers
+  """
   def send_peers(node, message, payload \\ nil) do
     GenServer.cast(node, {:send_peers, message, payload})
   end
@@ -450,6 +465,11 @@ defmodule Chord.Node do
     {:noreply, state}
   end
 
+  @doc """
+  Chord.Node.handle_cast for `failed_predeccessor`
+
+  A callback method to handle what to do when a predeccessor fails
+  """
   @impl true
   def handle_cast({:failed_predeccessor}, state) do
     # IO.inspect("--------in failed predeccessor---------- for #{state[:identifier]}")
@@ -457,6 +477,11 @@ defmodule Chord.Node do
     {:noreply, state}
   end
 
+  @doc """
+  Chord.Node.handle_cast for `failed_successor`
+
+  A callback method to handle what to do when a successor fails
+  """
   @impl true
   def handle_cast({:failed_successor}, state) do
     # IO.inspect("---------in failed successor---------- for #{state[:identifier]}")
@@ -531,7 +556,9 @@ defmodule Chord.Node do
     peers = [state[:predeccessor] | state[:successor_list]]
 
     Enum.each(peers, fn peer ->
-      Chord.Node.handle_broadcast(peer[:pid], message, payload)
+      if peer[:pid] != self() do
+        Chord.Node.handle_broadcast(peer[:pid], message, payload)
+      end
     end)
 
     {:noreply, state}
@@ -545,8 +572,12 @@ defmodule Chord.Node do
     peers = [state[:predeccessor] | state[:successor_list]]
 
     Enum.each(peers, fn peer ->
-      send(peer[:pid], {:common_store_handler, message, payload})
+      if peer[:pid] != self() and peer[:pid] != nil do
+        send(peer[:pid], {:common_store_handler, message, payload})
+      end
     end)
+
+    {:noreply, state}
   end
 
   @doc """
@@ -709,7 +740,7 @@ defmodule Chord.Node do
   """
   @impl true
   def terminate(_reason, state) do
-    IO.inspect("Terminating node")
+    # IO.inspect("Terminating node")
     # TODO: Implement an agent to recover data from crash
     Process.exit(state[:distributed_store], :kill)
     Process.exit(state[:common_store], :kill)

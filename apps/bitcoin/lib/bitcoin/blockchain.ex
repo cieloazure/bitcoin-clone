@@ -2,7 +2,7 @@ defmodule Bitcoin.Blockchain do
   @moduledoc """
   Bitcoin.Blockchain
 
-  This module takes care of storing and retrieving data
+  This module will maintain a blockchain and manage blockchain specific processes. 
   """
   use GenServer
   require Logger
@@ -23,6 +23,9 @@ defmodule Bitcoin.Blockchain do
   end
 
   @doc """
+  Bitcoin.Blockchain.get_top_hash
+
+  Get the topmost hash in the blockchain
   """
   def get_top_hash(node) do
     GenServer.call(node, {:get_top_hash})
@@ -36,6 +39,8 @@ defmodule Bitcoin.Blockchain do
 
   @doc """
   Bitcoin.Blockchain.init
+
+  Intialize the process with a node and genesis_block
   """
   @impl true
   def init(opts) do
@@ -53,6 +58,9 @@ defmodule Bitcoin.Blockchain do
   end
 
   @doc """
+  Bitcoin.Blockchain.handle_call callback for `:get_top_hash`
+
+  Get the topmost hash
   """
   @impl true
   def handle_call({:get_top_hash}, _from, {node, store}) do
@@ -60,14 +68,17 @@ defmodule Bitcoin.Blockchain do
   end
 
   @doc """
+  Bitcoin.Blockchain.handle_info callback for `:handle_message`
+
+  An important callback to manage messages of the blockchain and decide to do further processing
   """
   @impl true
   def handle_info({:handle_message, message, payload}, {node, store}) do
     store =
       case message do
         :getblocks ->
-          top_hash = payload
-          send_inventory(store, top_hash, node)
+          {top_hash, to} = payload
+          send_inventory(store, top_hash, to)
           store
 
         :inv ->
@@ -84,12 +95,19 @@ defmodule Bitcoin.Blockchain do
     {:noreply, {node, store}}
   end
 
-  #### PRIVATE FUNCTION #####
+  #### PRIVATE FUNCTIONS #####
+
+  # send_inventory
+  # Arguments: 
+  #    * store -> list of items
+  #    * top_hash -> the hash present with the node     
+  #    * node -> the ip_addr(here `pid`) of the node
   defp send_inventory(store, top_hash, node) do
     # Query
+    #
     # Find items after the top_hash
-    items = Enum.sort(store, fn op1, op2 -> op1[:height] <= op2[:height] end)
-    index = Enum.find_index(items, fn item -> item[:hash] == top_hash end)
+    items = Enum.sort(store, fn op1, op2 -> Map.get(op1, :height) <= Map.get(op2, :height) end)
+    index = Enum.find_index(items, fn item -> Map.get(item, :hash) == top_hash end)
     new_items = Enum.take(items, -(length(items) - (index + 1)))
 
     # Send those items  to the node using :inv message
@@ -97,6 +115,10 @@ defmodule Bitcoin.Blockchain do
     send(node, {:blockchain_handler, :inv, new_items})
   end
 
+  # save_inventory
+  # Arguments:
+  #   * store -> list of items
+  #   * blocks -> new blocks to be save in the blockchain
   defp save_inventory(store, blocks) do
     # DBs operations
     if is_list(blocks) do

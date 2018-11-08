@@ -48,6 +48,43 @@ defmodule Bitcoin.BlockchainTest do
     assert g1 == new_items ++ g
   end
 
+  test "send :getblocks" do
+    {:ok, seed} = SeedServer.start_link([])
+    {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
+    blockchain = :sys.get_state(node)[:blockchain]
+    {n, g} = :sys.get_state(blockchain)
+    hashes = ["1234", "5678", "2343"]
+    heights = [1, 2, 3]
+
+    new_items =
+      for i <- 0..2 do
+        %Bitcoin.Schemas.Block{height: Enum.at(heights, i), hash: Enum.at(hashes, i)}
+      end
+
+    send(blockchain, {:handle_message, :inv, new_items})
+    {n, g1} = :sys.get_state(blockchain)
+
+    send(blockchain, {:handle_message, :getblocks, {"0000", self()}})
+
+    items =
+      receive do
+        {:blockchain_handler, :inv, items} -> items
+      end
+
+    new_hashes = Enum.map(items, fn item -> Map.get(item, :hash) end)
+    assert new_hashes == hashes
+
+    send(blockchain, {:handle_message, :getblocks, {"1234", self()}})
+
+    items =
+      receive do
+        {:blockchain_handler, :inv, items} -> items
+      end
+
+    new_hashes = Enum.map(items, fn item -> Map.get(item, :hash) end)
+    assert new_hashes == Enum.take(hashes, -2)
+  end
+
   defp genesis_block do
     genesis_transaction = %Bitcoin.Schemas.Transaction{}
 
@@ -55,7 +92,9 @@ defmodule Bitcoin.BlockchainTest do
       block_index: 0,
       block_size: 10,
       tx_counter: 1,
-      txs: [genesis_transaction]
+      txs: [genesis_transaction],
+      height: 0,
+      hash: "0000"
     }
   end
 end

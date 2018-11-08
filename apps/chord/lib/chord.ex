@@ -49,6 +49,11 @@ defmodule Chord do
     GenServer.cast(api, {:create_broadcast, message, data})
   end
 
+  @doc """
+  Chord.send_peers
+
+  Send message only to the peers of the node
+  """
   def send_peers(api, message, payload \\ nil) do
     GenServer.cast(api, {:send_peers, message, payload})
   end
@@ -148,6 +153,11 @@ defmodule Chord do
     {:noreply, state}
   end
 
+  @doc """
+  Chord.handle_cast callback for `:send_peers`
+
+  Send message only to the peers of the node
+  """
   @impl true
   def handle_cast({:send_peers, message, payload}, {node, _} = state) do
     Chord.Node.send_peers(node, message, payload)
@@ -161,7 +171,7 @@ defmodule Chord do
   """
   @impl true
   def terminate(_reason, {node, _}) do
-    IO.inspect("Terminating api")
+    # IO.inspect("Terminating api")
     Process.exit(node, :normal)
   end
 end
