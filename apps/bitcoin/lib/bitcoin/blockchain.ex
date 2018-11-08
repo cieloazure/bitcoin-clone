@@ -86,9 +86,13 @@ defmodule Bitcoin.Blockchain do
           save_inventory(store, blocks)
 
         :new_block ->
+          # save_block
+          # broadcast_block
           nil
 
         :new_transaction ->
+          # save_transaction
+          # broadcast_transaction
           nil
       end
 

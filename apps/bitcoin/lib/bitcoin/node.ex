@@ -28,6 +28,27 @@ defmodule Bitcoin.Node do
     GenServer.cast(node, {:sync})
   end
 
+  # @doc """
+  # Bitcoin.Node.start_mining
+  # """
+  # def start_mining(node) do
+  # GenServer.cast(node, {:start_mining})
+  # end
+  #
+  # @doc """
+  # Bitcoin.Node.create_transaction
+  # """
+  # def create_transaction(node) do
+  # GenServer.cast(node, {:create_transaction})
+  # end
+  #
+  # @doc """
+  # Bitcoin.Node.start_wallet
+  # """
+  # def start_wallet(node) do
+  # GenServer.cast(node, {:start_wallet})
+  # end
+
   ###                      ###
   ###                      ###
   ### GenServer Callbacks  ###
@@ -50,7 +71,7 @@ defmodule Bitcoin.Node do
     {:ok, chord_api} =
       Chord.start_link(ip_addr: ip_addr, common_store: blockchain, seed_server: seed)
 
-    {:ok, [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api]}
+    {:ok, [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil]}
   end
 
   @doc """
@@ -64,6 +85,26 @@ defmodule Bitcoin.Node do
     Chord.send_peers(state[:chord_api], :getblocks, {self(), top_hash})
     {:noreply, state}
   end
+
+  # @impl true
+  # def handle_cast({:start_mining}, state) do
+  # if(is_nil(state[:mining])) do
+  # state[:mining] = spawn(Bitcoin.Mining, :start)
+  # end
+  # end
+  #
+  # @impl true
+  # def handle_cast({:create_transaction}, state) do
+  # transaction = Transaction.create_transaction(blockchain)
+  # send(node, {:blockchain_handler, :new_transaction, transaction})
+  # end
+  # 
+  # @impl true
+  # def handle_cast({:start_wallet}, state) do
+  # # generate a private key
+  # # generate a public key
+  # # generate a bitcoin address
+  # end
 
   @doc """
   Bitcoin.Node.handle_cast for `:blockchain_handler`
