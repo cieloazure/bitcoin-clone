@@ -68,8 +68,7 @@ defmodule Bitcoin.Node do
     {:ok, blockchain} =
       Bitcoin.Blockchain.start_link(genesis_block: genesis_block(), node: self())
 
-    {:ok, chord_api} =
-      Chord.start_link(ip_addr: ip_addr, common_store: blockchain, seed_server: seed)
+    {:ok, chord_api} = Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed)
 
     {:ok, [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil]}
   end
