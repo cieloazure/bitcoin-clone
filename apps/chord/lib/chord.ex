@@ -76,7 +76,7 @@ defmodule Chord do
     identifier = Keyword.get(opts, :identifier)
     number_of_bits = Keyword.get(opts, :number_of_bits)
     distributed_store = Keyword.get(opts, :distributed_store)
-    common_store = Keyword.get(opts, :common_store)
+    store = Keyword.get(opts, :store)
 
     {:ok, node} =
       Chord.Node.start_link(
@@ -85,7 +85,7 @@ defmodule Chord do
         identifier: identifier,
         number_of_bits: number_of_bits,
         distributed_store: distributed_store,
-        common_store: common_store
+        store: store
       )
 
     Chord.Node.join(node)

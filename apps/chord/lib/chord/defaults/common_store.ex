@@ -1,6 +1,6 @@
-defmodule Chord.Defaults.CommonStore do
+defmodule Chord.Defaults.Store do
   @moduledoc """
-  Defaults.CommonStore
+  Defaults.Store
 
   This module takes care of storing and retrieving data
   """
@@ -14,7 +14,7 @@ defmodule Chord.Defaults.CommonStore do
   ###             ###
 
   @doc """
-  Defaults.CommonStore.start_link
+  Defaults.Store.start_link
 
   Initiate the block storage server with given options
   """
@@ -29,7 +29,7 @@ defmodule Chord.Defaults.CommonStore do
   ###                      ###
 
   @doc """
-  Defaults.CommonStore.init
+  Defaults.Store.init
   """
   @impl true
   def init(opts) do

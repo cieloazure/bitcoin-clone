@@ -289,13 +289,13 @@ defmodule Chord.Node do
     # E.g Broadcasted message which need to be stored on every peer in the
     # network
 
-    common_store = Keyword.get(opts, :common_store)
+    store = Keyword.get(opts, :store)
 
-    {:ok, common_store} =
-      if(is_nil(common_store)) do
-        Chord.Defaults.CommonStore.start_link(node: self())
+    {:ok, store} =
+      if(is_nil(store)) do
+        Chord.Defaults.Store.start_link(node: self())
       else
-        {:ok, common_store}
+        {:ok, store}
       end
 
     # Trap exits
@@ -315,7 +315,7 @@ defmodule Chord.Node do
        predeccessor_checker: predeccessor_checker,
        successor_checker: successor_checker,
        distributed_store: distributed_store,
-       common_store: common_store
+       store: store
      ]}
   end
 
@@ -544,7 +544,7 @@ defmodule Chord.Node do
   @impl true
   def handle_cast({:handle_broadcast, message, payload}, state) do
     # Delegate it to common store
-    send(state[:common_store], {:handle_message, message, payload})
+    send(state[:store], {:handle_message, message, payload})
     {:noreply, state}
   end
 
@@ -573,7 +573,7 @@ defmodule Chord.Node do
 
     Enum.each(peers, fn peer ->
       if peer[:pid] != self() and peer[:pid] != nil do
-        send(peer[:pid], {:common_store_handler, message, payload})
+        send(peer[:pid], {:store_handler, message, payload})
       end
     end)
 
@@ -728,8 +728,8 @@ defmodule Chord.Node do
   Chord.Node.handle_info callback for peer operations
   """
   @impl true
-  def handle_info({:common_store_handler, message, payload}, state) do
-    send(state[:common_store], {:handle_message, message, payload})
+  def handle_info({:store_handler, message, payload}, state) do
+    send(state[:store], {:handle_message, message, payload})
     {:noreply, state}
   end
 
@@ -743,7 +743,7 @@ defmodule Chord.Node do
     # IO.inspect("Terminating node")
     # TODO: Implement an agent to recover data from crash
     Process.exit(state[:distributed_store], :kill)
-    Process.exit(state[:common_store], :kill)
+    Process.exit(state[:store], :kill)
     Process.exit(state[:finger_fixer], :kill)
     Process.exit(state[:successor_checker], :kill)
     Process.exit(state[:predeccessor_checker], :kill)
