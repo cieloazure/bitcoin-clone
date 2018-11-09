@@ -10,6 +10,6 @@ defmodule Bitcoin.Schemas.Block do
             tx_counter: 0,
             txs: [],
             block_index: nil,
-            hash: nil,
+            # hash: nil,
             height: nil
 end

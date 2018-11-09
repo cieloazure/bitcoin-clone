@@ -29,7 +29,7 @@ defmodule Bitcoin.Blockchain.Block do
       tx_counter: 1,
       txs: [gen_tx],
       block_index: nil,
-      hash: nil,
+      # hash: nil,
       height: 0
     }
 
@@ -56,7 +56,7 @@ defmodule Bitcoin.Blockchain.Block do
       tx_counter: length(transactions),
       txs: transactions,
       block_index: nil,
-      hash: nil,
+      # hash: nil,
       height: height
     }
 
