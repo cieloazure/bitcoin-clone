@@ -128,7 +128,7 @@ defmodule Bitcoin.Node do
       tx_counter: 1,
       txs: [genesis_transaction],
       height: 0,
-      hash: "0000"
+      # hash: "0000"
     }
   end
 end
