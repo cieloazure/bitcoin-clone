@@ -1,43 +1,53 @@
-# defmodule Bitcoin.NodeTest do
-#   use ExUnit.Case
+defmodule Bitcoin.NodeTest do
+  use ExUnit.Case
 
-#   test "sync operation without any peers will not change the blockchain" do
-#     {:ok, seed} = SeedServer.start_link([])
-#     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
-#     blockchain = :sys.get_state(node)[:blockchain]
-#     {_n, g} = :sys.get_state(blockchain)
-#     Bitcoin.Node.sync(node)
-#     Process.sleep(1000)
-#     {_n, g1} = :sys.get_state(blockchain)
-#     assert g == g1
-#   end
+  test "sync operation without any peers will not change the blockchain" do
+    {:ok, seed} = SeedServer.start_link([])
+    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
 
-#   test "sync operation with one  peers will change the blockchain" do
-#     {:ok, seed} = SeedServer.start_link([])
-#     {:ok, node1} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
-#     blockchain1 = :sys.get_state(node1)[:blockchain]
+    {:ok, node} =
+      Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
-#     hashes = ["1234", "5678", "2343"]
-#     heights = [1, 2, 3]
+    blockchain = :sys.get_state(node)[:blockchain]
+    {_n, g} = :sys.get_state(blockchain)
+    Bitcoin.Node.sync(node)
+    Process.sleep(1000)
+    {_n, g1} = :sys.get_state(blockchain)
+    assert g == g1
+  end
 
-#     new_items =
-#       for i <- 0..2 do
-#         %Bitcoin.Schemas.Block{
-#           height: Enum.at(heights, i),
-#           # hash: Enum.at(hashes, i)
-#         }
-#       end
+  test "sync operation with one  peers will change the blockchain" do
+    {:ok, seed} = SeedServer.start_link([])
+    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
 
-#     send(blockchain1, {:handle_message, :inv, new_items})
+    {:ok, node1} =
+      Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
-#     {:ok, node2} = Bitcoin.Node.start_link(ip_addr: "192.168.0.2", seed: seed)
-#     blockchain2 = :sys.get_state(node2)[:blockchain]
-#     {_n, g1} = :sys.get_state(blockchain2)
-#     Process.sleep(5000)
-#     Bitcoin.Node.sync(node2)
-#     {_n, g2} = :sys.get_state(blockchain1)
-#     Process.sleep(5000)
-#     assert g1 != g2
-#     assert length(g2) > length(g1)
-#   end
-# end
+    blockchain1 = :sys.get_state(node1)[:blockchain]
+
+    heights = [1, 2, 3]
+
+    new_items =
+      for i <- 0..2 do
+        %Bitcoin.Schemas.Block{
+          height: Enum.at(heights, i)
+        }
+      end
+
+    send(blockchain1, {:handle_message, :inv, new_items})
+
+    Process.sleep(1000)
+
+    {:ok, node2} =
+      Bitcoin.Node.start_link(ip_addr: "192.168.0.2", seed: seed, genesis_block: genesis_block)
+
+    Process.sleep(1000)
+    Bitcoin.Node.sync(node2)
+    Process.sleep(1000)
+    blockchain2 = :sys.get_state(node2)[:blockchain]
+    {_node, chain} = :sys.get_state(blockchain2)
+
+    assert Bitcoin.Structures.Chain.sort(chain, :height) ==
+             Bitcoin.Structures.Chain.sort([genesis_block | new_items], :height)
+  end
+end

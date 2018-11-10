@@ -64,9 +64,13 @@ defmodule Bitcoin.Node do
   def init(opts) do
     ip_addr = Keyword.get(opts, :ip_addr)
     seed = Keyword.get(opts, :seed)
+    genesis_block = Keyword.get(opts, :genesis_block)
 
     {:ok, blockchain} =
-      Bitcoin.Blockchain.start_link(genesis_block: genesis_block(), node: self())
+      Bitcoin.Blockchain.start_link(
+        genesis_block: genesis_block,
+        node: self()
+      )
 
     {:ok, chord_api} = Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed)
 
@@ -80,8 +84,8 @@ defmodule Bitcoin.Node do
   """
   @impl true
   def handle_cast({:sync}, state) do
-    top_hash = Bitcoin.Blockchain.get_top_hash(state[:blockchain])
-    Chord.send_peers(state[:chord_api], :getblocks, {self(), top_hash})
+    top_hash = Bitcoin.Blockchain.top_block(state[:blockchain])
+    Chord.send_peers(state[:chord_api], :getblocks, {top_hash, self()})
     {:noreply, state}
   end
 
@@ -113,22 +117,8 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_info({:blockchain_handler, message, payload}, state) do
     send(state[:blockchain], {:handle_message, message, payload})
+    {:noreply, state}
   end
 
   ##### PRIVATE FUNCTIONS ####
-
-  # genesis_block
-  # Get the genesis block to initialize the blockchain
-  defp genesis_block do
-    genesis_transaction = %Bitcoin.Schemas.Transaction{}
-
-    %Bitcoin.Schemas.Block{
-      block_index: 0,
-      block_size: 10,
-      tx_counter: 1,
-      txs: [genesis_transaction],
-      height: 0,
-      # hash: "0000"
-    }
-  end
 end
