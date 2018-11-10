@@ -59,6 +59,12 @@ defmodule Bitcoin.Node do
   Bitcoin.Node.init
 
   Initialize with ip_addr and seed process
+  The State of the node contains - 
+  1. Ip address
+  2. Seed node(s)
+  3. Blockchain handler
+  4. Chord peer to peer network
+  5. Wallet
   """
   @impl true
   def init(opts) do
@@ -74,7 +80,10 @@ defmodule Bitcoin.Node do
 
     {:ok, chord_api} = Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed)
 
-    {:ok, [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil]}
+    {:ok, wallet} = Bitcoin.Wallet.start_link([])
+
+    {:ok,
+     [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil, wallet: wallet]}
   end
 
   @doc """
