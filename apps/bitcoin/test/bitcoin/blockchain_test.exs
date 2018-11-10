@@ -71,7 +71,6 @@ defmodule Bitcoin.BlockchainTest do
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
     blockchain = :sys.get_state(node)[:blockchain]
-    hashes = ["1234", "5678", "2343"]
     heights = [1, 2, 3]
 
     new_items =
@@ -101,7 +100,6 @@ defmodule Bitcoin.BlockchainTest do
         {:blockchain_handler, :inv, items} -> items
       end
 
-    new_heights = Enum.map(items, fn item -> Map.get(item, :heights) end)
-    new_heights == Enum.take(heights, -2)
+    assert new_heights = Enum.map(items, fn item -> Map.get(item, :heights) end)
   end
 end
