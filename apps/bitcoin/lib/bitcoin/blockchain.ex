@@ -7,6 +7,8 @@ defmodule Bitcoin.Blockchain do
   use GenServer
   require Logger
 
+  alias Bitcoin.Structures.{Chain, Block}
+
   ###             ###
   ###             ###
   ### Client API  ###
@@ -23,12 +25,10 @@ defmodule Bitcoin.Blockchain do
   end
 
   @doc """
-  Bitcoin.Blockchain.get_top_hash
-
-  Get the topmost hash in the blockchain
+  Get the topmost block of the chain
   """
-  def get_top_hash(node) do
-    GenServer.call(node, {:get_top_hash})
+  def top_block(blockchain) do
+    GenServer.call(blockchain, {:top_block})
   end
 
   ###                      ###
@@ -46,25 +46,14 @@ defmodule Bitcoin.Blockchain do
   def init(opts) do
     node = Keyword.get(opts, :node)
     genesis_block = Keyword.get(opts, :genesis_block)
+    chain = Chain.new_chain(genesis_block)
 
-    # TODO: Initiailize Database, File storage, etc. 
-    # Using a map of items with format {key -> value} temporarily
-    # list of blocks
-    # store = DB.initialize()
-    store = []
-    store = if !is_nil(genesis_block), do: [genesis_block | store]
-
-    {:ok, {node, store}}
+    {:ok, {node, chain}}
   end
 
-  @doc """
-  Bitcoin.Blockchain.handle_call callback for `:get_top_hash`
-
-  Get the topmost hash
-  """
   @impl true
-  def handle_call({:get_top_hash}, _from, {node, store}) do
-    {:reply, List.last(store), {node, store}}
+  def handle_call({:top_block}, _from, {_node, chain} = state) do
+    {:reply, Chain.top(chain), state}
   end
 
   @doc """
@@ -73,17 +62,17 @@ defmodule Bitcoin.Blockchain do
   An important callback to manage messages of the blockchain and decide to do further processing
   """
   @impl true
-  def handle_info({:handle_message, message, payload}, {node, store}) do
-    store =
+  def handle_info({:handle_message, message, payload}, {node, chain}) do
+    chain =
       case message do
         :getblocks ->
           {top_hash, to} = payload
-          send_inventory(store, top_hash, to)
-          store
+          send_inventory(chain, top_hash, to)
+          chain
 
         :inv ->
           blocks = payload
-          save_inventory(store, blocks)
+          save_inventory(chain, blocks)
 
         :new_block ->
           # save_block
@@ -96,42 +85,40 @@ defmodule Bitcoin.Blockchain do
           nil
       end
 
-    {:noreply, {node, store}}
+    {:noreply, {node, chain}}
   end
 
   #### PRIVATE FUNCTIONS #####
 
   # send_inventory
   # Arguments: 
-  #    * store -> list of items
+  #    * chain -> list of items
   #    * top_hash -> the hash present with the node     
   #    * node -> the ip_addr(here `pid`) of the node
-  defp send_inventory(store, top_hash, node) do
-    # Query
-    #
-    # Find items after the top_hash
-    items = Enum.sort(store, fn op1, op2 -> Map.get(op1, :height) <= Map.get(op2, :height) end)
-    index = Enum.find_index(items, fn item -> Map.get(item, :hash) == top_hash end)
+  defp send_inventory(chain, top_block, node) do
+    block = Chain.get_blocks(chain, fn block -> block == top_block end)
+    height = Block.get_attr(List.first(block), :height)
 
-    if(!is_nil(index) and !is_nil(items)) do
-      new_items = Enum.take(items, -(length(items) - (index + 1)))
+    new_blocks =
+      if !is_nil(height) do
+        Chain.get_blocks(chain, fn block ->
+          Block.get_attr(block, :height) > height
+        end)
+      else
+        Chain.get_blocks(chain)
+      end
 
-      # Send those items  to the node using :inv message
-      # Send to the blockchain process of the node
-      send(node, {:blockchain_handler, :inv, new_items})
-    end
+    send(node, {:blockchain_handler, :inv, new_blocks})
   end
 
   # save_inventory
   # Arguments:
-  #   * store -> list of items
+  #   * chain -> list of items
   #   * blocks -> new blocks to be save in the blockchain
-  defp save_inventory(store, blocks) do
+  defp save_inventory(chain, blocks) do
     # DBs operations
-    if is_list(blocks) do
-      blocks ++ store
-    else
-      [blocks | store]
-    end
+    Chain.save(chain, blocks)
   end
+
+  # defp sha256(data), do: :crypto.hash(:sha256, data)
 end

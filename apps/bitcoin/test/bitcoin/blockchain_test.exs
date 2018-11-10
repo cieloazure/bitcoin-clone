@@ -1,100 +1,107 @@
-# defmodule Bitcoin.BlockchainTest do
-#   use ExUnit.Case
+defmodule Bitcoin.BlockchainTest do
+  use ExUnit.Case
 
-#   test "initialize the blockchain with genesis block" do
-#     {:ok, seed} = SeedServer.start_link([])
-#     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
-#     blockchain = :sys.get_state(node)[:blockchain]
-#     {n, g} = :sys.get_state(blockchain)
-#     assert node == n
-#     assert List.first(g) == genesis_block()
-#   end
+  test "initialize the blockchain with genesis block" do
+    {:ok, seed} = SeedServer.start_link([])
+    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
 
-#   test "get_top_hash" do
-#     {:ok, seed} = SeedServer.start_link([])
-#     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
-#     blockchain = :sys.get_state(node)[:blockchain]
-#     assert Bitcoin.Blockchain.get_top_hash(blockchain) == genesis_block()
-#   end
+    {:ok, node} =
+      Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
-#   test "send :inv message with one item" do
-#     {:ok, seed} = SeedServer.start_link([])
-#     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
-#     blockchain = :sys.get_state(node)[:blockchain]
-#     {_n, g} = :sys.get_state(blockchain)
+    blockchain = :sys.get_state(node)[:blockchain]
+    {n, g} = :sys.get_state(blockchain)
+    assert node == n
+    assert List.first(g) == genesis_block
+  end
 
-#     new_items = %Bitcoin.Schemas.Block{}
+  test "top_block" do
+    {:ok, seed} = SeedServer.start_link([])
+    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
 
-#     send(blockchain, {:handle_message, :inv, new_items})
+    {:ok, node} =
+      Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
-#     {_n, g1} = :sys.get_state(blockchain)
-#     assert g1 == [new_items | g]
-#   end
+    blockchain = :sys.get_state(node)[:blockchain]
+    assert Bitcoin.Blockchain.top_block(blockchain) == genesis_block
+  end
 
-#   test "send :inv message with many items" do
-#     {:ok, seed} = SeedServer.start_link([])
-#     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
-#     blockchain = :sys.get_state(node)[:blockchain]
-#     {_n, g} = :sys.get_state(blockchain)
+  test "send :inv message with one item" do
+    {:ok, seed} = SeedServer.start_link([])
+    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
 
-#     new_items =
-#       for _n <- 1..10 do
-#         %Bitcoin.Schemas.Block{}
-#       end
+    {:ok, node} =
+      Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
-#     send(blockchain, {:handle_message, :inv, new_items})
-#     {_n, g1} = :sys.get_state(blockchain)
-#     assert g1 == new_items ++ g
-#   end
+    blockchain = :sys.get_state(node)[:blockchain]
+    {_n, g} = :sys.get_state(blockchain)
 
-#   test "send :getblocks" do
-#     {:ok, seed} = SeedServer.start_link([])
-#     {:ok, node} = Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed)
-#     blockchain = :sys.get_state(node)[:blockchain]
-#     hashes = ["1234", "5678", "2343"]
-#     heights = [1, 2, 3]
+    new_items = %Bitcoin.Schemas.Block{}
 
-#     new_items =
-#       for i <- 0..2 do
-#         %Bitcoin.Schemas.Block{
-#           height: Enum.at(heights, i), 
-#           # hash: Enum.at(hashes, i)
-#         }
-#       end
+    send(blockchain, {:handle_message, :inv, new_items})
 
-#     send(blockchain, {:handle_message, :inv, new_items})
+    {_n, g1} = :sys.get_state(blockchain)
+    assert g1 == [new_items | g]
+  end
 
-#     send(blockchain, {:handle_message, :getblocks, {"0000", self()}})
+  test "send :inv message with many items" do
+    {:ok, seed} = SeedServer.start_link([])
+    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
 
-#     items =
-#       receive do
-#         {:blockchain_handler, :inv, items} -> items
-#       end
+    {:ok, node} =
+      Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
-#     new_hashes = Enum.map(items, fn item -> Map.get(item, :hash) end)
-#     assert new_hashes == hashes
+    blockchain = :sys.get_state(node)[:blockchain]
+    {_n, g} = :sys.get_state(blockchain)
 
-#     send(blockchain, {:handle_message, :getblocks, {"1234", self()}})
+    new_items =
+      for _n <- 1..10 do
+        %Bitcoin.Schemas.Block{}
+      end
 
-#     items =
-#       receive do
-#         {:blockchain_handler, :inv, items} -> items
-#       end
+    send(blockchain, {:handle_message, :inv, new_items})
+    {_n, g1} = :sys.get_state(blockchain)
+    assert g1 == new_items ++ g
+  end
 
-#     new_hashes = Enum.map(items, fn item -> Map.get(item, :hash) end)
-#     assert new_hashes == Enum.take(hashes, -2)
-#   end
+  test "send :getblocks" do
+    {:ok, seed} = SeedServer.start_link([])
+    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
 
-#   defp genesis_block do
-#     genesis_transaction = %Bitcoin.Schemas.Transaction{}
+    {:ok, node} =
+      Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
-#     %Bitcoin.Schemas.Block{
-#       block_index: 0,
-#       block_size: 10,
-#       tx_counter: 1,
-#       txs: [genesis_transaction],
-#       height: 0,
-#       hash: "0000"
-#     }
-#   end
-# end
+    blockchain = :sys.get_state(node)[:blockchain]
+    hashes = ["1234", "5678", "2343"]
+    heights = [1, 2, 3]
+
+    new_items =
+      for i <- 0..2 do
+        %Bitcoin.Schemas.Block{
+          height: Enum.at(heights, i)
+          # hash: Enum.at(hashes, i)
+        }
+      end
+
+    send(blockchain, {:handle_message, :inv, new_items})
+
+    send(blockchain, {:handle_message, :getblocks, {genesis_block, self()}})
+
+    items =
+      receive do
+        {:blockchain_handler, :inv, items} -> items
+      end
+
+    new_heights = Enum.map(items, fn item -> Map.get(item, :height) end)
+    assert heights == new_heights
+
+    send(blockchain, {:handle_message, :getblocks, {Enum.at(new_items, 1), self()}})
+
+    items =
+      receive do
+        {:blockchain_handler, :inv, items} -> items
+      end
+
+    new_heights = Enum.map(items, fn item -> Map.get(item, :heights) end)
+    new_heights == Enum.take(heights, -2)
+  end
+end

@@ -1,4 +1,4 @@
-defmodule Bitcoin.Blockchain.Transaction do
+defmodule Bitcoin.Structures.Transaction do
   @doc """
   Create the generation transaction for a block with mining reward and transaction fees
   """
@@ -17,7 +17,7 @@ defmodule Bitcoin.Blockchain.Transaction do
     }
 
     # output:
-    value = Bitcoin.Blockchain.Block.get_block_value(block_height, fees)
+    value = Bitcoin.Structures.Block.get_block_value(block_height, fees)
 
     v_out = %Bitcoin.Schemas.TransactionOutput{
       amount: value,
@@ -37,7 +37,4 @@ defmodule Bitcoin.Blockchain.Transaction do
 
     {:ok, transaction}
   end
-
-  # def create_transaction(block_height, fees, input_utxo, priv_key, recipient) do
-  # end
 end

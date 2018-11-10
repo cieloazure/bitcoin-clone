@@ -1,4 +1,4 @@
-defmodule Bitcoin.Blockchain.Block do
+defmodule Bitcoin.Structures.Block do
   use Bitwise
 
   @coin 100_000_000
@@ -6,10 +6,15 @@ defmodule Bitcoin.Blockchain.Block do
 
   @doc """
   Create the genesis block for the blockchain
+
+  This is a function to generate genesis block. Every node will start with this block.
   """
-  def create_genesis_block(recipient) do
-    gen_tx = Bitcoin.Blockchain.Transaction.create_generation_transaction(0, 0, recipient)
-    merkle_root = :crypto.hash(:sha256, gen_tx[:tx_id])
+  def get_genesis_block() do
+    # Bitcoin/Blockchain creator
+    # Recipient is always decided
+    recipient = "100000"
+    {:ok, gen_tx} = Bitcoin.Structures.Transaction.create_generation_transaction(0, 0, recipient)
+    merkle_root = :crypto.hash(:sha256, Map.get(gen_tx, :tx_id))
 
     previous_block_hash = <<0::256>>
     timestamp = DateTime.utc_now()
@@ -33,7 +38,7 @@ defmodule Bitcoin.Blockchain.Block do
       height: 0
     }
 
-    block = %{block | block_size: byte_size(block)}
+    block = %{block | block_size: 50}
 
     {:ok, block}
   end
@@ -98,5 +103,13 @@ defmodule Bitcoin.Blockchain.Block do
       end
 
     nonce
+  end
+
+  def get_attr(block, attr) do
+    if !is_nil(block) do
+      Map.get(block, attr)
+    else
+      nil
+    end
   end
 end
