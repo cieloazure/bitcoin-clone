@@ -571,7 +571,8 @@ defmodule Chord.Node do
   def handle_cast({:send_peers, message, payload}, state) do
     peers = [state[:predeccessor] | state[:successor_list]]
 
-    Enum.each(peers, fn peer ->
+    Enum.uniq(peers)
+    |> Enum.each(fn peer ->
       if peer[:pid] != self() and peer[:pid] != nil do
         send(peer[:pid], {:store_handler, message, payload})
       end
