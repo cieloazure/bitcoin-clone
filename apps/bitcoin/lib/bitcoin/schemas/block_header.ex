@@ -7,5 +7,6 @@ defmodule Bitcoin.Schemas.BlockHeader do
             merkle_root: nil,
             timestamp: nil,
             nonce: nil,
-            difficulty_target: nil
+            difficulty_target: nil,
+            version: nil
 end
