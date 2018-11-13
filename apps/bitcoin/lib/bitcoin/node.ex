@@ -101,21 +101,15 @@ defmodule Bitcoin.Node do
   # @impl true
   # def handle_cast({:start_mining}, state) do
   # if(is_nil(state[:mining])) do
-  # state[:mining] = spawn(Bitcoin.Mining, :start)
+  # state[:mining] = spawn(Bitcoin.Mining, :start, [])
   # end
   # end
+
   #
   # @impl true
   # def handle_cast({:create_transaction}, state) do
   # transaction = Transaction.create_transaction(blockchain)
   # send(node, {:blockchain_handler, :new_transaction, transaction})
-  # end
-  # 
-  # @impl true
-  # def handle_cast({:start_wallet}, state) do
-  # # generate a private key
-  # # generate a public key
-  # # generate a bitcoin address
   # end
 
   @doc """
