@@ -1,9 +1,10 @@
 defmodule Bitcoin.BlockchainTest do
   use ExUnit.Case
+  alias Bitcoin.Structures.Block
 
   test "initialize the blockchain with genesis block" do
     {:ok, seed} = SeedServer.start_link([])
-    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
+    genesis_block = Block.create_candidate_genesis_block()
 
     {:ok, node} =
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
@@ -16,7 +17,7 @@ defmodule Bitcoin.BlockchainTest do
 
   test "top_block" do
     {:ok, seed} = SeedServer.start_link([])
-    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
+    genesis_block = Block.create_candidate_genesis_block()
 
     {:ok, node} =
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
@@ -27,7 +28,7 @@ defmodule Bitcoin.BlockchainTest do
 
   test "send :inv message with one item" do
     {:ok, seed} = SeedServer.start_link([])
-    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
+    genesis_block = Block.create_candidate_genesis_block()
 
     {:ok, node} =
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
@@ -45,7 +46,7 @@ defmodule Bitcoin.BlockchainTest do
 
   test "send :inv message with many items" do
     {:ok, seed} = SeedServer.start_link([])
-    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
+    genesis_block = Block.create_candidate_genesis_block()
 
     {:ok, node} =
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
@@ -65,7 +66,7 @@ defmodule Bitcoin.BlockchainTest do
 
   test "send :getblocks" do
     {:ok, seed} = SeedServer.start_link([])
-    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
+    genesis_block = Block.create_candidate_genesis_block()
 
     {:ok, node} =
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
