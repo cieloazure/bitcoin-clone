@@ -1,75 +1,75 @@
-require IEx
-
 defmodule Bitcoin.Structures.Block do
   use Bitwise
 
   @coin 100_000_000
   @halving_interval 210_000
-  @past_difficulty 3
+  # @past_difficulty_param
+  # 60 secs for each block in the network
+  @past_difficulty_param 1
 
   @doc """
-  Create the genesis block for the blockchain
-
-  This is a function to generate genesis block. Every node will start with this block.
+  Create the candidate genesis block for the blockchain
   """
-  def get_genesis_block() do
-    # Bitcoin/Blockchain creator
-    # Recipient is always decided
-    recipient = "100000"
+  def create_candidate_genesis_block(difficulty, recipient) do
+    # TODO: Check when to initialize the recipient of the genesis block
+    recipient = "<blockchain_creator-or-first_miner>"
     {:ok, gen_tx} = Bitcoin.Structures.Transaction.create_generation_transaction(0, 0, recipient)
-    merkle_root = :crypto.hash(:sha256, Map.get(gen_tx, :tx_id))
+    # merkle_root = :crypto.hash(:sha256, Map.get(gen_tx, :tx_id))
+    merkle_root = nil
 
     previous_block_hash = <<0::256>>
     timestamp = DateTime.utc_now()
-    nonce = nonce_calc(previous_block_hash, 2)
+    nonce = 1
 
     header = %Bitcoin.Schemas.BlockHeader{
       prev_block_hash: previous_block_hash,
       merkle_root: merkle_root,
       timestamp: timestamp,
       nonce: nonce,
-      difficulty_target: 2
+      bits: "1903A30C",
+      version: 1
     }
 
-    block = %Bitcoin.Schemas.Block{
+    %Bitcoin.Schemas.Block{
       block_header: header,
-      # block_size: byte_size(block),
       tx_counter: 1,
       txns: [gen_tx],
-      block_index: nil,
       height: 0
     }
-
-    block = %{block | block_size: 50}
-
-    {:ok, block}
   end
 
   @doc """
-  Create a block
+  Create a candidate block for mining
   """
-  def create_block(height, prev, nonce, difficulty, transactions, merkle_root) do
+  def create_candidate_block(transaction_pool, blockchain) do
+    last_block = Bitcoin.Structures.Chain.top(blockchain)
+    timestamp = DateTime.utc_now()
+    height = get_attr(last_block, :height) + 1
+    prev_block_hash = serialize(get_attr(last_block, :block_header)) |> double_sha256
+    # merkle_root = Bitcoin.Utilities.MerkleTree.calculate_root(transaction_pool)
+    version = 1
+    # last_block may be equal to first_block
+    bits = get_next_target(last_block, blockchain)
+    initial_nonce = 1
+
     header = %Bitcoin.Schemas.BlockHeader{
-      prev_block_hash: prev,
-      merkle_root: merkle_root,
-      timestamp: DateTime.utc_now(),
-      nonce: nonce,
-      difficulty_target: difficulty
+      version: version,
+      timestamp: timestamp,
+      prev_block_hash: prev_block_hash,
+      nonce: initial_nonce,
+      bits: bits
+      #      merkle_root: merkle_root,
     }
 
-    block = %Bitcoin.Schemas.Block{
+    # transaction_counter = Bitcoin.Structures.TransactionPool.count(transaction_pool)
+    transaction_counter = 0
+
+    %Bitcoin.Schemas.Block{
       block_header: header,
-      # block_size: 0,
-      tx_counter: length(transactions),
-      txns: transactions,
-      block_index: nil,
-      # hash: nil,
+      txns: transaction_pool,
+      tx_counter: transaction_counter,
       height: height
     }
-
-    block = %{block | block_size: byte_size(block)}
-
-    {:ok, block}
   end
 
   @doc """
@@ -90,78 +90,46 @@ defmodule Bitcoin.Structures.Block do
   end
 
   @doc """
-  Calculate the nonce required to reach the specified difficulty target
-  """
-  def nonce_calc(input, difficulty, nonce \\ 0) do
-    string = input <> Integer.to_string(nonce)
-    hash = :crypto.hash(:sha256, string)
-    n_zeros = difficulty * 8
-
-    nonce =
-      if <<0::size(n_zeros)>> == :binary.part(hash, 0, difficulty) do
-        nonce
-      else
-        nonce_calc(input, difficulty, nonce + 1)
-      end
-
-    nonce
-  end
-
-  @doc """
   Get specific attribute of the block
   """
-  def get_attr(block, attr) do
-    if !is_nil(block) do
-      Map.get(block, attr)
-    else
-      nil
-    end
-  end
+  def get_attr(block, _attr) when is_nil(block), do: nil
+  def get_attr(block, attr), do: Map.get(block, attr)
 
+  @doc """
+  Get attribute of the block header
+  """
   def get_header_attr(block, attr), do: get_attr(block, :block_header) |> get_attr(attr)
 
   @doc """
-  Create a candidate block
+  Calculate the target value required for mining from bits field of the header
   """
-  def create_candidate_block(transaction_pool, blockchain) do
-    last_block = Bitcoin.Structures.Chain.top(blockchain)
-    timestamp = DateTime.utc_now()
-    height = get_attr(last_block, :height) + 1
-    prev_block_hash = serialize(get_attr(last_block, :block_header)) |> double_sha256
-    # merkle_root = Bitcoin.Utilities.MerkleTree.calculate_root(transaction_pool)
-    version = 1
-    difficulty_target = get_next_target(last_block, blockchain)
-    initial_nonce = 1
+  def calculate_target(block) do
+    bits = get_header_attr(block, :bits)
+    {exponent, coeffiecient} = String.split_at(bits, 2)
 
-    header = %Bitcoin.Schemas.BlockHeader{
-      version: version,
-      timestamp: timestamp,
-      prev_block_hash: prev_block_hash,
-      #      merkle_root: merkle_root,
-      difficulty_target: difficulty_target,
-      nonce: initial_nonce
-    }
+    {:ok, exponent} = Base.decode16(exponent, case: :upper)
+    {:ok, coeffiecient} = Base.decode16(coeffiecient, case: :upper)
 
-    # transaction_counter = Bitcoin.Structures.TransactionPool.count(transaction_pool)
-    transaction_counter = 0
-
-    %Bitcoin.Schemas.Block{
-      block_header: header,
-      txns: transaction_pool,
-      tx_counter: transaction_counter,
-      height: height
-    }
+    a = 8 * (:binary.decode_unsigned(exponent) - 3)
+    b = :math.pow(2, a)
+    c = :binary.decode_unsigned(coeffiecient) * b
+    z = :binary.encode_unsigned(trunc(c), :big)
+    target = String.pad_leading(z, 32, <<0>>)
+    # zeros_required = 32 - byte_size(z)
+    zeros_required = 3
+    {target, zeros_required}
   end
 
-  # def valid?(block) do
-  # end
+  ### PRIVATE FUNCTION ###
 
   defp get_next_target(last_block, blockchain) do
-    last_target = get_header_attr(last_block, :difficulty_target)
+    last_target = get_header_attr(last_block, :bits)
 
-    if length(blockchain) > @past_difficulty do
-      # Go back 2016 blocks in blockchain and get that block
-      first_block = Enum.at(blockchain, -@past_difficulty)
+    if length(blockchain) > @past_difficulty_param do
+      first_block =
+        Bitcoin.Structures.Chain.sort(blockchain, :height)
+        |> Enum.reverse()
+        |> Enum.at(-@past_difficulty_param)
 
       # calculate time difference
       time_difference =
@@ -170,8 +138,27 @@ defmodule Bitcoin.Structures.Block do
           get_header_attr(first_block, :timestamp)
         )
 
-      # last_target * (time_difference/20160 mins)
-      last_target * (time_difference / (@past_difficulty * 10 * 60))
+      # Calculate the new target in terms of bits
+      modifier = time_difference / (@past_difficulty_param * 60)
+
+      {target, _} = calculate_target(last_block)
+
+      new_target = :binary.decode_unsigned(target) * modifier
+
+      new_target_bin =
+        trunc(new_target) |> :binary.encode_unsigned() |> String.pad_leading(32, <<0>>)
+
+      new_target_coeffiecient_bin = String.trim(new_target_bin, <<0>>)
+      new_target_coeffiecient_hex = Base.encode16(new_target_coeffiecient_bin, case: :upper)
+
+      b =
+        :math.log2(new_target) - :math.log2(:binary.decode_unsigned(new_target_coeffiecient_bin))
+
+      new_target_exponent = b / 8 + 3
+      new_target_exponent_bin = :binary.encode_unsigned(trunc(new_target_exponent))
+      new_target_exponent_hex = Base.encode16(new_target_exponent_bin, case: :upper)
+
+      new_target_exponent_hex <> new_target_coeffiecient_hex
     else
       last_target
     end
@@ -181,6 +168,11 @@ defmodule Bitcoin.Structures.Block do
   defp sha256(data), do: :crypto.hash(:sha256, data)
 
   defp serialize(block), do: :erlang.term_to_binary(block)
-  def get_header_attr(block, attr), do: get_attr(block, :block_header) |> get_attr(attr)
-  # defp deserialize(block), do: :erlang.binary_to_term(block)
+
+  # @doc """
+  # Check the validity of the block
+  # """
+  #
+  # def valid?(block) do
+  # end
 end
