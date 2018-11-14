@@ -20,7 +20,7 @@ defmodule Bitcoin.Structures.Chain do
   Topmost item signifies the last block
   """
   def top(chain) do
-    List.last(chain)
+    sort(chain, :height) |> List.last()
   end
 
   @doc """

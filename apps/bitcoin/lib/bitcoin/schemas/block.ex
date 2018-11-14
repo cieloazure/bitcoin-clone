@@ -6,9 +6,7 @@ defmodule Bitcoin.Schemas.Block do
   """
   # @table_name  "blocks"
   defstruct block_header: %Bitcoin.Schemas.BlockHeader{},
-            block_size: 0,
             tx_counter: 0,
             txns: [],
-            block_index: nil,
             height: nil
 end
