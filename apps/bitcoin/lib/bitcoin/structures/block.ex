@@ -4,15 +4,16 @@ defmodule Bitcoin.Structures.Block do
   @coin 100_000_000
   @halving_interval 210_000
   # @past_difficulty_param
-  # 60 secs for each block in the network
+  # Assuming, 60 secs for each block in the network
   @past_difficulty_param 1
 
   @doc """
   Create the candidate genesis block for the blockchain
   """
-  def create_candidate_genesis_block(difficulty, recipient) do
-    # TODO: Check when to initialize the recipient of the genesis block
-    recipient = "<blockchain_creator-or-first_miner>"
+  def create_candidate_genesis_block(
+        difficulty \\ "1D00FFFF",
+        recipient \\ "<blockchain_creator/first_miner/satoshi_nakomoto>"
+      ) do
     {:ok, gen_tx} = Bitcoin.Structures.Transaction.create_generation_transaction(0, 0, recipient)
     # merkle_root = :crypto.hash(:sha256, Map.get(gen_tx, :tx_id))
     merkle_root = nil
@@ -26,7 +27,7 @@ defmodule Bitcoin.Structures.Block do
       merkle_root: merkle_root,
       timestamp: timestamp,
       nonce: nonce,
-      bits: "1903A30C",
+      bits: difficulty,
       version: 1
     }
 
@@ -49,7 +50,7 @@ defmodule Bitcoin.Structures.Block do
     # merkle_root = Bitcoin.Utilities.MerkleTree.calculate_root(transaction_pool)
     version = 1
     # last_block may be equal to first_block
-    bits = get_next_target(last_block, blockchain)
+    bits = get_next_target(last_block, blockchain, @past_difficulty_param)
     initial_nonce = 1
 
     header = %Bitcoin.Schemas.BlockHeader{
@@ -103,33 +104,32 @@ defmodule Bitcoin.Structures.Block do
   @doc """
   Calculate the target value required for mining from bits field of the header
   """
-  def calculate_target(block) do
+  def calculate_target(block, zeros_required \\ nil) do
     bits = get_header_attr(block, :bits)
     {exponent, coeffiecient} = String.split_at(bits, 2)
 
-    {:ok, exponent} = Base.decode16(exponent, case: :upper)
-    {:ok, coeffiecient} = Base.decode16(coeffiecient, case: :upper)
+    {:ok, exponent} = String.upcase(exponent) |> Base.decode16(case: :upper)
+    {:ok, coeffiecient} = String.upcase(coeffiecient) |> Base.decode16(case: :upper)
 
     a = 8 * (:binary.decode_unsigned(exponent) - 3)
     b = :math.pow(2, a)
     c = :binary.decode_unsigned(coeffiecient) * b
     z = :binary.encode_unsigned(trunc(c), :big)
     target = String.pad_leading(z, 32, <<0>>)
-    # zeros_required = 32 - byte_size(z)
-    zeros_required = 3
+    zeros_required = zeros_required || 32 - byte_size(z)
     {target, zeros_required}
   end
 
   ### PRIVATE FUNCTION ###
 
-  defp get_next_target(last_block, blockchain) do
+  defp get_next_target(last_block, blockchain, past_difficulty_param) do
     last_target = get_header_attr(last_block, :bits)
 
-    if length(blockchain) > @past_difficulty_param do
+    if length(blockchain) > past_difficulty_param do
       first_block =
         Bitcoin.Structures.Chain.sort(blockchain, :height)
         |> Enum.reverse()
-        |> Enum.at(-@past_difficulty_param)
+        |> Enum.at(-past_difficulty_param)
 
       # calculate time difference
       time_difference =
@@ -139,7 +139,7 @@ defmodule Bitcoin.Structures.Block do
         )
 
       # Calculate the new target in terms of bits
-      modifier = time_difference / (@past_difficulty_param * 60)
+      modifier = time_difference / (past_difficulty_param * 60)
 
       {target, _} = calculate_target(last_block)
 
