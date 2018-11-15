@@ -122,6 +122,13 @@ defmodule Bitcoin.Structures.Block do
 
   ### PRIVATE FUNCTION ###
 
+  # get_next_target
+  #
+  # Calculates the next target for the candidate block to achieve
+  # The next target depends on how much time it takes for the block to mine
+  # blocks in `past_difficulty_params` variable
+  #
+  # Returns the appropriate target for the block
   defp get_next_target(last_block, blockchain, past_difficulty_param) do
     last_target = get_header_attr(last_block, :bits)
 
@@ -164,9 +171,14 @@ defmodule Bitcoin.Structures.Block do
     end
   end
 
+  # Helper functions to calculate SHA256 hash of the header
+  # TODO: Move this in utilities
   defp double_sha256(data), do: sha256(data) |> sha256
   defp sha256(data), do: :crypto.hash(:sha256, data)
 
+  # serialize
+  #
+  # Converts a elixir data structure to binary representation
   defp serialize(block), do: :erlang.term_to_binary(block)
 
   # @doc """
