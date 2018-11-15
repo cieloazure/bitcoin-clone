@@ -1,9 +1,26 @@
 defmodule Bitcoin.Mining do
-  def initiate_mining(candidate_block) do
-    {_, zeros_required} = Bitcoin.Structures.Block.calculate_target(candidate_block)
+  @moduledoc """
+  Module for mining  and related methods
+  """
+
+  @doc """
+  Initiate mining on a given `candidate_block`
+  Difficulty can be "faked" by specifying the number of zeros required in `fake_number_of_zeros` parameter
+
+  Returns the mined block which contains the nonce in its header for which the target was achieved
+  """
+  def initiate_mining(candidate_block, fake_number_of_zeros \\ nil) do
+    {_, zeros_required} =
+      Bitcoin.Structures.Block.calculate_target(candidate_block, fake_number_of_zeros)
+
     mine_block(candidate_block, zeros_required)
   end
 
+  # mine_block
+  # Calculates the nonce for which the `candidate_block` achieves the
+  # difficulty target
+  # 
+  # Returns the mined block with the calculated nonce
   defp mine_block(candidate_block, zeros_required) do
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
     nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
@@ -20,6 +37,10 @@ defmodule Bitcoin.Mining do
     end
   end
 
+  # increment_nonce
+  # Increments the nonce in the candidate block header and returns the block
+  #
+  # Returns the block with updated nonce
   defp increment_nonce(candidate_block) do
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
     nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
@@ -28,6 +49,8 @@ defmodule Bitcoin.Mining do
     candidate_block
   end
 
+  # Helper function to calculated sha256 hash of the header twice
+  # TODO: Move in the utilities and make available to all modules
   defp double_sha256(data), do: sha256(data) |> sha256
   defp sha256(data), do: :crypto.hash(:sha256, data)
 end
