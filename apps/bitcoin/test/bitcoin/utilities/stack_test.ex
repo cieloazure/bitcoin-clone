@@ -65,7 +65,7 @@ defmodule Bitcoin.Utilities.StackTest do
     test "depth is greater than length of stack 2" do
       stack = []
       stack = Stack.push(stack, {1, 2})
-      assert Stack.peek(stack, 2) == [{1,2}]
+      assert Stack.peek(stack, 2) == [{1, 2}]
     end
 
     test "peek on empty stack" do
