@@ -36,6 +36,7 @@ defmodule Bitcoin.Utilities.Stack do
   def peek(stack, depth \\ 1)
   def peek(stack, _depth) when length(stack) == 0, do: nil
   def peek(stack, depth) when depth == 1, do: List.first(stack)
+
   def peek(stack, depth) when length(stack) > depth do
     Enum.take(stack, depth)
   end

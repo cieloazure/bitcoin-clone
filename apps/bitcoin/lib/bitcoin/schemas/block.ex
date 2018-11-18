@@ -8,5 +8,6 @@ defmodule Bitcoin.Schemas.Block do
   defstruct block_header: %Bitcoin.Schemas.BlockHeader{},
             tx_counter: 0,
             txns: [],
-            height: nil
+            height: nil,
+            merkle_tree: nil
 end

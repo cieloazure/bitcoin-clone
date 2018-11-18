@@ -1,5 +1,6 @@
 defmodule Bitcoin.Structures.Block do
   use Bitwise
+  alias Bitcoin.Utilities.MerkleTree
 
   @coin 100_000_000
   @halving_interval 210_000
@@ -15,8 +16,7 @@ defmodule Bitcoin.Structures.Block do
         recipient \\ "<blockchain_creator/first_miner/satoshi_nakomoto>"
       ) do
     {:ok, gen_tx} = Bitcoin.Structures.Transaction.create_generation_transaction(0, 0, recipient)
-    # merkle_root = :crypto.hash(:sha256, Map.get(gen_tx, :tx_id))
-    merkle_root = nil
+    {merkle_root, merkle_tree} = MerkleTree.calculate_hash([gen_tx])
 
     previous_block_hash = <<0::256>>
     timestamp = DateTime.utc_now()
@@ -35,7 +35,8 @@ defmodule Bitcoin.Structures.Block do
       block_header: header,
       tx_counter: 1,
       txns: [gen_tx],
-      height: 0
+      height: 0,
+      merkle_tree: merkle_tree
     }
   end
 
@@ -47,29 +48,39 @@ defmodule Bitcoin.Structures.Block do
     timestamp = DateTime.utc_now()
     height = get_attr(last_block, :height) + 1
     prev_block_hash = serialize(get_attr(last_block, :block_header)) |> double_sha256
-    # merkle_root = Bitcoin.Utilities.MerkleTree.calculate_root(transaction_pool)
     version = 1
-    # last_block may be equal to first_block
+
+    # TODO: last_block may be equal to first_block
     bits = get_next_target(last_block, blockchain, @past_difficulty_param)
     initial_nonce = 1
+
+    {:ok, gen_tx} =
+      Bitcoin.Structures.Transaction.create_generation_transaction(
+        height,
+        0,
+        "<bitcoin_address_from_wallet>"
+      )
+
+    transaction_pool = [gen_tx | transaction_pool]
+    {merkle_root, merkle_tree} = MerkleTree.calculate_hash(transaction_pool)
 
     header = %Bitcoin.Schemas.BlockHeader{
       version: version,
       timestamp: timestamp,
       prev_block_hash: prev_block_hash,
       nonce: initial_nonce,
-      bits: bits
-      #      merkle_root: merkle_root,
+      bits: bits,
+      merkle_root: merkle_root
     }
 
-    # transaction_counter = Bitcoin.Structures.TransactionPool.count(transaction_pool)
-    transaction_counter = 0
+    transaction_counter = length(transaction_pool)
 
     %Bitcoin.Schemas.Block{
       block_header: header,
       txns: transaction_pool,
       tx_counter: transaction_counter,
-      height: height
+      height: height,
+      merkle_tree: merkle_tree
     }
   end
 
