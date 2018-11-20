@@ -1,6 +1,10 @@
 defmodule Bitcoin.Utilities.MerkleTree do
   alias Bitcoin.Utilities.Stack
+  import Bitcoin.Utilities.Crypto
 
+  @doc """
+  Calculate the merkle root and merkle tree
+  """
   def calculate_hash(items) when is_list(items) and length(items) > 0 do
     items =
       if rem(length(items), 2) != 0 do
@@ -17,6 +21,9 @@ defmodule Bitcoin.Utilities.MerkleTree do
     tree_hash(items, [], merkle_tree)
   end
 
+  @doc """
+  Get the authentication path of each leaf
+  """
   def authentication_path(merkle_tree, _leaf \\ nil) do
     items = Map.get(merkle_tree, 0)
     max_height = trunc(:math.log2(length(items)))
@@ -40,6 +47,7 @@ defmodule Bitcoin.Utilities.MerkleTree do
     calc_auth_path(auth, stack, 0, auth_paths, max_height, merkle_tree, length(items))
   end
 
+  # Helper methods to calculate the authentication path
   defp calc_auth_path(auth, stack, leaf, auth_paths, max_height, merkle_tree, nodes)
        when leaf < nodes do
     auth_paths = Map.put(auth_paths, leaf, auth)
@@ -192,6 +200,5 @@ defmodule Bitcoin.Utilities.MerkleTree do
 
   defp equal_height?(items) when length(items) < 2, do: false
   defp equal_height?([item1, item2]), do: elem(item1, 1) == elem(item2, 1)
-  defp sha256(data), do: :crypto.hash(:sha256, data)
   defp serialize(term), do: :erlang.term_to_binary(term)
 end

@@ -2,6 +2,7 @@ defmodule Bitcoin.Utilities.Base58Check do
   @moduledoc """
   Base58 encoding with version and checksum included
   """
+  import Bitcoin.Utilities.Crypto
 
   @doc """
   Base58Check encoding algorithm
@@ -23,5 +24,4 @@ defmodule Bitcoin.Utilities.Base58Check do
 
   # Get the first four bytes for checksum
   defp split(<<hash::bytes-size(4), _::bits>>), do: hash
-  defp sha256(data), do: :crypto.hash(:sha256, data)
 end

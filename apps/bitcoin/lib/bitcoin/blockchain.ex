@@ -119,6 +119,4 @@ defmodule Bitcoin.Blockchain do
     # DBs operations
     Chain.save(chain, blocks)
   end
-
-  # defp sha256(data), do: :crypto.hash(:sha256, data)
 end
