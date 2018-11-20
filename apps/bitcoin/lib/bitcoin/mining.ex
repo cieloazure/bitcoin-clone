@@ -1,5 +1,6 @@
 defmodule Bitcoin.Mining do
   import Bitcoin.Utilities.Crypto
+
   @moduledoc """
   Module for mining  and related methods
   """
@@ -25,10 +26,9 @@ defmodule Bitcoin.Mining do
   defp mine_block(candidate_block, zeros_required) do
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
     nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
-    # IO.inspect(nonce)
+    IO.inspect(nonce)
 
-    <<zeros_obtained::bytes-size(zeros_required), _::bits>> =
-      header |> double_sha256
+    <<zeros_obtained::bytes-size(zeros_required), _::bits>> = header |> double_sha256
 
     if zeros_obtained == String.duplicate(<<0>>, zeros_required) do
       candidate_block
