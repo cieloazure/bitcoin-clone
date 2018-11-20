@@ -71,16 +71,14 @@ defmodule Bitcoin.Node do
     ip_addr = Keyword.get(opts, :ip_addr)
     seed = Keyword.get(opts, :seed)
     genesis_block = Keyword.get(opts, :genesis_block)
+    wallet = Bitcoin.Wallet.init_wallet()
 
     {:ok, blockchain} =
       Bitcoin.Blockchain.start_link(
         genesis_block: genesis_block,
         node: self()
       )
-
     {:ok, chord_api} = Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed)
-
-    {:ok, wallet} = Bitcoin.Wallet.start_link([])
 
     {:ok,
      [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil, wallet: wallet]}
