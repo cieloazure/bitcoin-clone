@@ -2,6 +2,7 @@ defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.MerkleTree
   import Bitcoin.Utilities.Crypto
+  import Bitcoin.Utilities.Conversions
 
   @coin 100_000_000
   @halving_interval 210_000
@@ -120,13 +121,16 @@ defmodule Bitcoin.Structures.Block do
     bits = get_header_attr(block, :bits)
     {exponent, coeffiecient} = String.split_at(bits, 2)
 
-    {:ok, exponent} = String.upcase(exponent) |> Base.decode16(case: :upper)
-    {:ok, coeffiecient} = String.upcase(coeffiecient) |> Base.decode16(case: :upper)
+    # {:ok, exponent} = String.upcase(exponent) |> Base.decode16(case: :upper)
+    # {:ok, coeffiecient} = String.upcase(coeffiecient) |> Base.decode16(case: :upper)
+    #
+    exponent = hex_to_decimal(exponent)
+    coeffiecient = hex_to_decimal(coeffiecient)
 
-    a = 8 * (:binary.decode_unsigned(exponent) - 3)
+    a = 8 * (exponent - 3)
     b = :math.pow(2, a)
-    c = :binary.decode_unsigned(coeffiecient) * b
-    z = :binary.encode_unsigned(trunc(c), :big)
+    c = coeffiecient * b
+    z = decimal_to_binary(c)
     target = String.pad_leading(z, 32, <<0>>)
     zeros_required = zeros_required || 32 - byte_size(z)
     {target, zeros_required}
@@ -162,20 +166,21 @@ defmodule Bitcoin.Structures.Block do
 
       {target, _} = calculate_target(last_block)
 
-      new_target = :binary.decode_unsigned(target) * modifier
+      # Calculate new target
+      new_target = binary_to_decimal(target) * modifier
 
-      new_target_bin =
-        trunc(new_target) |> :binary.encode_unsigned() |> String.pad_leading(32, <<0>>)
+      new_target_bin = decimal_to_binary(new_target)
+      new_target_bin = new_target_bin |> String.pad_leading(32, <<0>>)
 
+      # Separate new target into coeffiecient and exponent
       new_target_coeffiecient_bin = String.trim(new_target_bin, <<0>>)
-      new_target_coeffiecient_hex = Base.encode16(new_target_coeffiecient_bin, case: :upper)
+      new_target_coeffiecient_hex = binary_to_hex(new_target_coeffiecient_bin)
 
-      b =
-        :math.log2(new_target) - :math.log2(:binary.decode_unsigned(new_target_coeffiecient_bin))
+      b = :math.log2(new_target) - :math.log2(binary_to_decimal(new_target_coeffiecient_bin))
 
       new_target_exponent = b / 8 + 3
-      new_target_exponent_bin = :binary.encode_unsigned(trunc(new_target_exponent))
-      new_target_exponent_hex = Base.encode16(new_target_exponent_bin, case: :upper)
+      new_target_exponent_bin = decimal_to_binary(new_target_exponent)
+      new_target_exponent_hex = binary_to_hex(new_target_exponent_bin)
 
       new_target_exponent_hex <> new_target_coeffiecient_hex
     else

@@ -44,16 +44,18 @@ defmodule Bitcoin.MiningTest do
     assert zeros_obtained == String.duplicate(<<0>>, 2)
   end
 
+  # NOTE: DO IT PROPERLY
+  # NOTE: Faked!
   test "difficulty increases when blocks are mined quickly" do
     genesis_block = Block.create_candidate_genesis_block()
     prev_bits = Block.get_header_attr(genesis_block, :bits)
     mined_block = Bitcoin.Mining.initiate_mining(genesis_block, 2)
     chain = [mined_block]
     block1 = Block.create_candidate_block([], chain)
-    mined_block = Bitcoin.Mining.initiate_mining(block1, 1)
+    mined_block = Bitcoin.Mining.initiate_mining(block1, 2)
     chain = [mined_block | chain]
     block2 = Block.create_candidate_block([], chain)
-    _mined_block = Bitcoin.Mining.initiate_mining(block2, 1)
+    _mined_block = Bitcoin.Mining.initiate_mining(block2, 2)
     bits = Block.get_header_attr(block2, :bits)
     # IO.inspect(bits)
     {target, zeros_req} = calculate_target(bits)
@@ -65,6 +67,8 @@ defmodule Bitcoin.MiningTest do
     assert zeros_req >= prev_zeros_req
   end
 
+  # NOTE: DO IT PROPERLY
+  # NOTE: Faked!
   test "difficulty decreases when blocks are mined slowly" do
     genesis_block = Block.create_candidate_genesis_block()
     prev_bits = Block.get_header_attr(genesis_block, :bits)
