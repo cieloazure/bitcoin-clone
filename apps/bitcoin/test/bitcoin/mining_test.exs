@@ -1,16 +1,17 @@
 defmodule Bitcoin.MiningTest do
   use ExUnit.Case
   alias Bitcoin.Structures.Block
+  import Bitcoin.Utilities.Crypto
 
   test "mining a genesis block with fake difficulty" do
     genesis_block = Block.create_candidate_genesis_block()
     mined_block = Bitcoin.Mining.initiate_mining(genesis_block, 2)
-    IO.inspect(mined_block)
+    # IO.inspect(mined_block)
     assert Block.get_header_attr(mined_block, :nonce) != 1
 
     header = Block.get_attr(mined_block, :block_header)
 
-    <<zeros_obtained::bytes-size(2), _::bits>> = :erlang.term_to_binary(header) |> double_sha256
+    <<zeros_obtained::bytes-size(2), _::bits>> = header |> double_sha256
 
     assert zeros_obtained == String.duplicate(<<0>>, 2)
   end
@@ -23,7 +24,7 @@ defmodule Bitcoin.MiningTest do
 
   # header = Block.get_attr(mined_block, :block_header)
 
-  # <<zeros_obtained::bytes-size(2), _::bits>> = :erlang.term_to_binary(header) |> double_sha256
+  # <<zeros_obtained::bytes-size(2), _::bits>> = header |> double_sha256
 
   # assert zeros_obtained == String.duplicate(<<0>>)
   # end
@@ -33,12 +34,12 @@ defmodule Bitcoin.MiningTest do
     Process.sleep(1000)
     block1 = Block.create_candidate_block([], [genesis_block])
     mined_block = Bitcoin.Mining.initiate_mining(block1, 2)
-    IO.inspect(mined_block)
+    # IO.inspect(mined_block)
     assert Block.get_header_attr(mined_block, :nonce) != 1
 
     header = Block.get_attr(mined_block, :block_header)
 
-    <<zeros_obtained::bytes-size(2), _::bits>> = :erlang.term_to_binary(header) |> double_sha256
+    <<zeros_obtained::bytes-size(2), _::bits>> = header |> double_sha256
 
     assert zeros_obtained == String.duplicate(<<0>>, 2)
   end
@@ -54,13 +55,13 @@ defmodule Bitcoin.MiningTest do
     block2 = Block.create_candidate_block([], chain)
     _mined_block = Bitcoin.Mining.initiate_mining(block2, 1)
     bits = Block.get_header_attr(block2, :bits)
-    IO.inspect(bits)
+    # IO.inspect(bits)
     {target, zeros_req} = calculate_target(bits)
     {prev_target, prev_zeros_req} = calculate_target(prev_bits)
-    IO.inspect(prev_target)
-    IO.inspect(target)
-    IO.inspect(prev_zeros_req)
-    IO.inspect(zeros_req)
+    # IO.inspect(prev_target)
+    # IO.inspect(target)
+    # IO.inspect(prev_zeros_req)
+    # IO.inspect(zeros_req)
     assert zeros_req >= prev_zeros_req
   end
 
@@ -77,18 +78,15 @@ defmodule Bitcoin.MiningTest do
     block2 = Block.create_candidate_block([], chain)
     _mined_block = Bitcoin.Mining.initiate_mining(block2, 2)
     bits = Block.get_header_attr(block2, :bits)
-    IO.inspect(bits)
+    # IO.inspect(bits)
     {target, zeros_req} = calculate_target(bits)
     {prev_target, prev_zeros_req} = calculate_target(prev_bits)
-    IO.inspect(prev_target)
-    IO.inspect(target)
-    IO.inspect(prev_zeros_req)
-    IO.inspect(zeros_req)
+    # IO.inspect(prev_target)
+    # IO.inspect(target)
+    # IO.inspect(prev_zeros_req)
+    # IO.inspect(zeros_req)
     assert zeros_req <= prev_zeros_req
   end
-
-  defp double_sha256(data), do: sha256(data) |> sha256
-  defp sha256(data), do: :crypto.hash(:sha256, data)
 
   defp calculate_target(bits) do
     {exponent, coeffiecient} = String.split_at(bits, 2)

@@ -1,4 +1,5 @@
 defmodule Bitcoin.Mining do
+  import Bitcoin.Utilities.Crypto
   @moduledoc """
   Module for mining  and related methods
   """
@@ -24,10 +25,10 @@ defmodule Bitcoin.Mining do
   defp mine_block(candidate_block, zeros_required) do
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
     nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
-    IO.inspect(nonce)
+    # IO.inspect(nonce)
 
     <<zeros_obtained::bytes-size(zeros_required), _::bits>> =
-      :erlang.term_to_binary(header) |> double_sha256
+      header |> double_sha256
 
     if zeros_obtained == String.duplicate(<<0>>, zeros_required) do
       candidate_block
@@ -48,9 +49,4 @@ defmodule Bitcoin.Mining do
     candidate_block = %Bitcoin.Schemas.Block{candidate_block | block_header: header}
     candidate_block
   end
-
-  # Helper function to calculated sha256 hash of the header twice
-  # TODO: Move in the utilities and make available to all modules
-  defp double_sha256(data), do: sha256(data) |> sha256
-  defp sha256(data), do: :crypto.hash(:sha256, data)
 end

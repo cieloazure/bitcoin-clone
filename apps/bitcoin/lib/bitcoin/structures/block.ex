@@ -1,6 +1,7 @@
 defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.MerkleTree
+  import Bitcoin.Utilities.Crypto
 
   @coin 100_000_000
   @halving_interval 210_000
@@ -47,7 +48,7 @@ defmodule Bitcoin.Structures.Block do
     last_block = Bitcoin.Structures.Chain.top(blockchain)
     timestamp = DateTime.utc_now()
     height = get_attr(last_block, :height) + 1
-    prev_block_hash = serialize(get_attr(last_block, :block_header)) |> double_sha256
+    prev_block_hash = get_attr(last_block, :block_header) |> double_sha256
     version = 1
 
     # TODO: last_block may be equal to first_block
@@ -181,16 +182,6 @@ defmodule Bitcoin.Structures.Block do
       last_target
     end
   end
-
-  # Helper functions to calculate SHA256 hash of the header
-  # TODO: Move this in utilities
-  defp double_sha256(data), do: sha256(data) |> sha256
-  defp sha256(data), do: :crypto.hash(:sha256, data)
-
-  # serialize
-  #
-  # Converts a elixir data structure to binary representation
-  defp serialize(block), do: :erlang.term_to_binary(block)
 
   # @doc """
   # Check the validity of the block

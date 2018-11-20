@@ -47,8 +47,8 @@ defmodule Bitcoin.Utilities.MerkleTree do
     factor = trunc(:math.pow(2, h))
     {auth, stack} = update_auth(leaf, h, factor, auth, stack, max_height)
     stack = update_stack(stack, merkle_tree, 0, max_height, nodes)
-    IO.inspect(auth)
-    IO.inspect(stack)
+    # IO.inspect(auth)
+    # IO.inspect(stack)
     calc_auth_path(auth, stack, leaf + 1, auth_paths, max_height, merkle_tree, nodes)
   end
 
