@@ -2,6 +2,7 @@ defmodule Bitcoin.Utilities.MerkleTreeTest do
   use ExUnit.Case
 
   alias Bitcoin.Utilities.MerkleTree
+  import Bitcoin.Utilities.Crypto
 
   describe "treehash" do
     test "even elements" do
@@ -19,7 +20,7 @@ defmodule Bitcoin.Utilities.MerkleTreeTest do
     test "hashed in right order" do
       items = [1, 2, 3, 4, 5, 6, 7, 8]
       {_root_hash, merkle_tree} = MerkleTree.calculate_hash(items)
-      x = serialize(1) |> sha256
+      x = sha256(1)
       level = Map.get(merkle_tree, 0)
       assert Enum.at(level, 0) == x
     end
@@ -59,7 +60,4 @@ defmodule Bitcoin.Utilities.MerkleTreeTest do
 
     Enum.all?(check)
   end
-
-  defp sha256(data), do: :crypto.hash(:sha256, data)
-  defp serialize(term), do: :erlang.term_to_binary(term)
 end
