@@ -5,7 +5,7 @@ defmodule Bitcoin.Structures.BlockTest do
   test "create a genesis candidate block" do
     # TODO: Verify correct genesis candidate block is obtained
     block = Block.create_candidate_genesis_block()
-    IO.inspect(block)
+    # IO.inspect(block)
     assert !is_nil(block)
   end
 
