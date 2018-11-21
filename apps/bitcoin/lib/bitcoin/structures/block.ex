@@ -6,9 +6,10 @@ defmodule Bitcoin.Structures.Block do
 
   @coin 100_000_000
   @halving_interval 210_000
-  # @past_difficulty_param
+  # @retarget_difficulty_after_blocks
   # Assuming, 60 secs for each block in the network
-  @past_difficulty_param 1
+  @retarget_difficulty_after_blocks 1
+  @expected_time_to_solve_one_block_in_secs 60
 
   @doc """
   Create the candidate genesis block for the blockchain
@@ -53,7 +54,7 @@ defmodule Bitcoin.Structures.Block do
     version = 1
 
     # TODO: last_block may be equal to first_block
-    bits = get_next_target(last_block, blockchain, @past_difficulty_param)
+    bits = get_next_target(last_block, blockchain, @retarget_difficulty_after_blocks, @expected_time_to_solve_one_block_in_secs)
     initial_nonce = 1
 
     {:ok, gen_tx} =
@@ -142,17 +143,17 @@ defmodule Bitcoin.Structures.Block do
   #
   # Calculates the next target for the candidate block to achieve
   # The next target depends on how much time it takes for the block to mine
-  # blocks in `past_difficulty_params` variable
+  # blocks in `retarget_difficulty_after_blockss` variable
   #
   # Returns the appropriate target for the block
-  defp get_next_target(last_block, blockchain, past_difficulty_param) do
+  defp get_next_target(last_block, blockchain, retarget_difficulty_after_blocks, expected_time_to_solve_one_block_in_secs) do
     last_target = get_header_attr(last_block, :bits)
 
-    if length(blockchain) > past_difficulty_param do
+    if length(blockchain) > retarget_difficulty_after_blocks do
       first_block =
         Bitcoin.Structures.Chain.sort(blockchain, :height)
         |> Enum.reverse()
-        |> Enum.at(-past_difficulty_param)
+        |> Enum.at(-retarget_difficulty_after_blocks)
 
       # calculate time difference
       time_difference =
@@ -162,7 +163,7 @@ defmodule Bitcoin.Structures.Block do
         )
 
       # Calculate the new target in terms of bits
-      modifier = time_difference / (past_difficulty_param * 60)
+      modifier = time_difference / (retarget_difficulty_after_blocks * expected_time_to_solve_one_block_in_secs)
 
       {target, _} = calculate_target(last_block)
 
@@ -188,10 +189,9 @@ defmodule Bitcoin.Structures.Block do
     end
   end
 
-  # @doc """
-  # Check the validity of the block
-  # """
-  #
-  # def valid?(block) do
-  # end
+   @doc """
+   Check the validity of the block
+   """
+   def valid?(block) do
+   end
 end
