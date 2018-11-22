@@ -1,4 +1,7 @@
 defmodule Bitcoin.Utilities.Stack do
+  @moduledoc """
+  Stack 
+  """
   def push(stack, item) do
     [item | stack]
   end

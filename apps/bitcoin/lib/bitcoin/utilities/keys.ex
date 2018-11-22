@@ -3,6 +3,7 @@ defmodule Bitcoin.Utilities.Keys do
   Keys utility to manage keys
   """
   alias Bitcoin.Utilities.Base58Check, as: Base58Check
+  import Bitcoin.Utilities.Crypto
 
   @doc """
   Generate a private key
@@ -75,6 +76,4 @@ defmodule Bitcoin.Utilities.Keys do
       false
     end
   end
-
-  def hash(data, algorithm), do: :crypto.hash(algorithm, data)
 end
