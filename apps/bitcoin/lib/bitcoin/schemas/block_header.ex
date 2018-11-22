@@ -9,4 +9,28 @@ defmodule Bitcoin.Schemas.BlockHeader do
             nonce: nil,
             version: nil,
             bits: nil
+
+  def valid?(header) do
+    header_keys = Map.keys(header) |> List.delete_at(0)
+
+    MapSet.equal?(
+      MapSet.new(header_keys),
+      MapSet.new([:prev_block_hash, :merkle_root, :timestamp, :version, :nonce, :bits])
+    ) and valid_values?(header)
+  end
+
+  def valid_values?(header) do
+    header = Map.from_struct(header)
+
+    Enum.all?(header, fn {k, v} ->
+      case k do
+        :prev_block_hash -> is_bitstring(v)
+        :merkle_root -> is_bitstring(v)
+        :timestamp -> DateTime.to_unix(v) |> is_number
+        :version -> is_number(v)
+        :nonce -> is_number(v)
+        :bits -> is_bitstring(v)
+      end
+    end)
+  end
 end

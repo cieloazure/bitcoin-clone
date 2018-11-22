@@ -1,3 +1,5 @@
+require IEx
+
 defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.MerkleTree
@@ -6,15 +8,16 @@ defmodule Bitcoin.Structures.Block do
 
   @coin 100_000_000
   @halving_interval 210_000
-  # @past_difficulty_param
+  # @retarget_difficulty_after_blocks
   # Assuming, 60 secs for each block in the network
-  @past_difficulty_param 1
+  @retarget_difficulty_after_blocks 1
+  @expected_time_to_solve_one_block_in_secs 60
 
   @doc """
   Create the candidate genesis block for the blockchain
   """
   def create_candidate_genesis_block(
-        difficulty \\ "1D00FFFF",
+        difficulty \\ "1effffff",
         recipient \\ "<blockchain_creator/first_miner/satoshi_nakomoto>"
       ) do
     {:ok, gen_tx} = Bitcoin.Structures.Transaction.create_generation_transaction(0, 0, recipient)
@@ -53,7 +56,14 @@ defmodule Bitcoin.Structures.Block do
     version = 1
 
     # TODO: last_block may be equal to first_block
-    bits = get_next_target(last_block, blockchain, @past_difficulty_param)
+    bits =
+      get_next_target(
+        last_block,
+        blockchain,
+        @retarget_difficulty_after_blocks,
+        @expected_time_to_solve_one_block_in_secs
+      )
+
     initial_nonce = 1
 
     {:ok, gen_tx} =
@@ -117,13 +127,16 @@ defmodule Bitcoin.Structures.Block do
   @doc """
   Calculate the target value required for mining from bits field of the header
   """
-  def calculate_target(block, zeros_required \\ nil) do
+  def calculate_target(block) do
     bits = get_header_attr(block, :bits)
+    calculate_target_from_bits(bits)
+  end
+
+  ### PRIVATE FUNCTION ###
+
+  defp calculate_target_from_bits(bits) when is_bitstring(bits) do
     {exponent, coeffiecient} = String.split_at(bits, 2)
 
-    # {:ok, exponent} = String.upcase(exponent) |> Base.decode16(case: :upper)
-    # {:ok, coeffiecient} = String.upcase(coeffiecient) |> Base.decode16(case: :upper)
-    #
     exponent = hex_to_decimal(exponent)
     coeffiecient = hex_to_decimal(coeffiecient)
 
@@ -132,27 +145,46 @@ defmodule Bitcoin.Structures.Block do
     c = coeffiecient * b
     z = decimal_to_binary(c)
     target = String.pad_leading(z, 32, <<0>>)
-    zeros_required = zeros_required || 32 - byte_size(z)
-    {target, zeros_required}
+    target
   end
 
-  ### PRIVATE FUNCTION ###
+  defp calculate_bits_from_target(new_target) when is_number(new_target) do
+    new_target_bin = decimal_to_binary(new_target)
+    new_target_bin = new_target_bin |> String.pad_leading(32, <<0>>)
+
+    # Separate new target into coeffiecient and exponent
+    new_target_coeffiecient_bin = String.trim(new_target_bin, <<0>>)
+    new_target_coeffiecient_hex = binary_to_hex(new_target_coeffiecient_bin)
+
+    b = :math.log2(new_target) - :math.log2(binary_to_decimal(new_target_coeffiecient_bin))
+
+    new_target_exponent = b / 8 + 3
+    new_target_exponent_bin = decimal_to_binary(new_target_exponent)
+    new_target_exponent_hex = binary_to_hex(new_target_exponent_bin)
+
+    new_target_exponent_hex <> new_target_coeffiecient_hex
+  end
 
   # get_next_target
   #
   # Calculates the next target for the candidate block to achieve
   # The next target depends on how much time it takes for the block to mine
-  # blocks in `past_difficulty_params` variable
+  # blocks in `retarget_difficulty_after_blockss` variable
   #
   # Returns the appropriate target for the block
-  defp get_next_target(last_block, blockchain, past_difficulty_param) do
+  defp get_next_target(
+         last_block,
+         blockchain,
+         retarget_difficulty_after_blocks,
+         expected_time_to_solve_one_block_in_secs
+       ) do
     last_target = get_header_attr(last_block, :bits)
 
-    if length(blockchain) > past_difficulty_param do
+    if length(blockchain) > retarget_difficulty_after_blocks do
       first_block =
         Bitcoin.Structures.Chain.sort(blockchain, :height)
         |> Enum.reverse()
-        |> Enum.at(-past_difficulty_param)
+        |> Enum.at(-retarget_difficulty_after_blocks)
 
       # calculate time difference
       time_difference =
@@ -161,37 +193,93 @@ defmodule Bitcoin.Structures.Block do
           get_header_attr(first_block, :timestamp)
         )
 
-      # Calculate the new target in terms of bits
-      modifier = time_difference / (past_difficulty_param * 60)
+      # Have a min time difference of  1 secs
+      # Because, a time_difference of 0 will make the new_target 0
+      # And log of 0 will produce an error
+      time_difference = if trunc(time_difference) == 0, do: 1, else: time_difference
 
-      {target, _} = calculate_target(last_block)
+      # Calculate the new target in terms of bits
+      # NOTE: Modifier may be 0, if the blocks are mined really quickly and
+      # time_difference is 0
+      modifier =
+        time_difference /
+          (retarget_difficulty_after_blocks * expected_time_to_solve_one_block_in_secs)
+
+      target = calculate_target(last_block)
 
       # Calculate new target
       new_target = binary_to_decimal(target) * modifier
 
-      new_target_bin = decimal_to_binary(new_target)
-      new_target_bin = new_target_bin |> String.pad_leading(32, <<0>>)
-
-      # Separate new target into coeffiecient and exponent
-      new_target_coeffiecient_bin = String.trim(new_target_bin, <<0>>)
-      new_target_coeffiecient_hex = binary_to_hex(new_target_coeffiecient_bin)
-
-      b = :math.log2(new_target) - :math.log2(binary_to_decimal(new_target_coeffiecient_bin))
-
-      new_target_exponent = b / 8 + 3
-      new_target_exponent_bin = decimal_to_binary(new_target_exponent)
-      new_target_exponent_hex = binary_to_hex(new_target_exponent_bin)
-
-      new_target_exponent_hex <> new_target_coeffiecient_hex
+      # Calculate the new bits string 
+      calculate_bits_from_target(new_target)
     else
       last_target
     end
   end
 
-  # @doc """
-  # Check the validity of the block
-  # """
-  #
-  # def valid?(block) do
-  # end
+  @doc """
+  Check the validity of the block
+  """
+  def valid?(block, chain) do
+    with true <- valid_fields?(block),
+         {true, is_genesis_block} <- valid_height?(block, chain),
+         true <- valid_nonce?(block, chain, is_genesis_block) do
+      true
+    else
+      false -> 
+        false
+      {false, _} -> 
+        false
+    end
+  end
+
+  defp valid_height?(block, confirmed_chain) do
+    new_block_height = get_attr(block, :height)
+
+    cond do
+      new_block_height == 0 and Enum.empty?(confirmed_chain) ->
+        {true, true}
+
+      !Enum.empty?(confirmed_chain) ->
+        top_block = Bitcoin.Structures.Chain.top(confirmed_chain)
+        height = get_attr(top_block, :height)
+        expected_height = height + 1
+        {new_block_height <= expected_height and new_block_height > height, false}
+    end
+  end
+
+  defp valid_nonce?(block, confirmed_chain, is_genesis_block) do
+    expected_target =
+      if !is_genesis_block do
+        top_block = Bitcoin.Structures.Chain.top(confirmed_chain)
+
+        get_next_target(
+          top_block,
+          confirmed_chain,
+          @retarget_difficulty_after_blocks,
+          @expected_time_to_solve_one_block_in_secs
+        )
+      else
+        nil
+      end
+
+    target = get_header_attr(block, :bits)
+
+    cond do
+      is_genesis_block or target == expected_target ->
+        difficulty = calculate_target_from_bits(target)
+        difficulty = binary_to_decimal(difficulty)
+        header = get_attr(block, :block_header)
+        header_hash = double_sha256(header) |> binary_to_decimal()
+        header_hash <= difficulty
+
+      target != expected_target ->
+        false
+    end
+  end
+
+  defp valid_fields?(block) do
+    header = Map.get(block, :block_header)
+    Bitcoin.Schemas.BlockHeader.valid?(header) and Bitcoin.Schemas.Block.valid?(block)
+  end
 end
