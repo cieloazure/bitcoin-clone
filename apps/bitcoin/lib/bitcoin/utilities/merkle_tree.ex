@@ -1,4 +1,8 @@
 defmodule Bitcoin.Utilities.MerkleTree do
+  @moduledoc """
+  Module to implement merkle tree functionalities.
+  Can construct a merkle tree as well as get the authentication path of a leaf from the merkle tree
+  """
   alias Bitcoin.Utilities.Stack
   import Bitcoin.Utilities.Crypto
 

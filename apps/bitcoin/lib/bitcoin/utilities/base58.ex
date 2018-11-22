@@ -1,6 +1,6 @@
 defmodule Bitcoin.Utilities.Base58 do
   @moduledoc """
-  This module is responsible for encoding in a Base58 format which is unambiguous
+  This module is responsible for encoding in a Base58 format which encodes string in unambiguous characters
   """
   @alphabet '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
@@ -30,6 +30,7 @@ defmodule Bitcoin.Utilities.Base58 do
     |> Enum.find_index(&(&1 != 0))
   end
 
+  # Handle zeros separately as elixir truncates the zeros
   defp encode_zeros(data) do
     <<Enum.at(@alphabet, 0)>>
     |> String.duplicate(leading_zeros(data))

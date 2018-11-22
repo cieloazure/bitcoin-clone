@@ -11,6 +11,9 @@ defmodule Bitcoin.Schemas.Block do
             height: nil,
             merkle_tree: nil
 
+  @doc """
+  Check whether the block struct is valid
+  """
   def valid?(block) do
     keys = Map.keys(block) |> List.delete_at(0)
 
@@ -20,7 +23,8 @@ defmodule Bitcoin.Schemas.Block do
     ) and valid_values?(block)
   end
 
-  def valid_values?(block) do
+  # Check whether the values present in the struct are valid 
+  defp valid_values?(block) do
     block = Map.from_struct(block)
 
     Enum.all?(block, fn {k, v} ->

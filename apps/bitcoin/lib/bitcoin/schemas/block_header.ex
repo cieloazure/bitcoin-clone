@@ -10,6 +10,9 @@ defmodule Bitcoin.Schemas.BlockHeader do
             version: nil,
             bits: nil
 
+  @doc """
+  Check whether the block struct is valid
+  """
   def valid?(header) do
     header_keys = Map.keys(header) |> List.delete_at(0)
 
@@ -19,7 +22,8 @@ defmodule Bitcoin.Schemas.BlockHeader do
     ) and valid_values?(header)
   end
 
-  def valid_values?(header) do
+  # Check whether the values present in the struct are valid 
+  defp valid_values?(header) do
     header = Map.from_struct(header)
 
     Enum.all?(header, fn {k, v} ->

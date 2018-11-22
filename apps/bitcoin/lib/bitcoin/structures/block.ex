@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.MerkleTree
@@ -8,8 +6,13 @@ defmodule Bitcoin.Structures.Block do
 
   @coin 100_000_000
   @halving_interval 210_000
-  # @retarget_difficulty_after_blocks
-  # Assuming, 60 secs for each block in the network
+
+  # Constants required to retarget a difficulty
+  # In this case, the difficulty will be retargeted after
+  # every block
+  # It is also assumed that will take 60secs to generate a block
+  # If the time required to produce one block is greater then the 
+  # difficulty should increase else it should decrease
   @retarget_difficulty_after_blocks 1
   @expected_time_to_solve_one_block_in_secs 60
 
@@ -132,8 +135,28 @@ defmodule Bitcoin.Structures.Block do
     calculate_target_from_bits(bits)
   end
 
-  ### PRIVATE FUNCTION ###
+  @doc """
+  Check the validity of the block
+  """
+  def valid?(block, chain) do
+    with true <- valid_fields?(block),
+         {true, is_genesis_block} <- valid_height?(block, chain),
+         true <- valid_nonce?(block, chain, is_genesis_block) do
+      true
+    else
+      false -> 
+        false
+      {false, _} -> 
+        false
+    end
+  end
 
+  ### PRIVATE FUNCTIONS ###
+
+  # Calculate target from a bitstring
+  # For example, 
+  # calculate_target_from_bits("1fffffff") will give <<0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  # 0, 0, 0, 0, 0, 0, 0, 0>>
   defp calculate_target_from_bits(bits) when is_bitstring(bits) do
     {exponent, coeffiecient} = String.split_at(bits, 2)
 
@@ -148,7 +171,11 @@ defmodule Bitcoin.Structures.Block do
     target
   end
 
-  defp calculate_bits_from_target(new_target) when is_number(new_target) do
+  # Calculate the bitstring from a decimal target
+  # For example, 
+  # calculate_bits_from_target(:binary.decode_unsigned(<<0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  # 0, 0, 0, 0, 0, 0, 0, 0>>)) will give "1FFFFFFF"
+  def calculate_bits_from_target(new_target) when is_number(new_target) do
     new_target_bin = decimal_to_binary(new_target)
     new_target_bin = new_target_bin |> String.pad_leading(32, <<0>>)
 
@@ -217,22 +244,8 @@ defmodule Bitcoin.Structures.Block do
     end
   end
 
-  @doc """
-  Check the validity of the block
-  """
-  def valid?(block, chain) do
-    with true <- valid_fields?(block),
-         {true, is_genesis_block} <- valid_height?(block, chain),
-         true <- valid_nonce?(block, chain, is_genesis_block) do
-      true
-    else
-      false -> 
-        false
-      {false, _} -> 
-        false
-    end
-  end
 
+  # Check for validity of height of the block
   defp valid_height?(block, confirmed_chain) do
     new_block_height = get_attr(block, :height)
 
@@ -248,6 +261,7 @@ defmodule Bitcoin.Structures.Block do
     end
   end
 
+  # Check for validity of the nonce of the block
   defp valid_nonce?(block, confirmed_chain, is_genesis_block) do
     expected_target =
       if !is_genesis_block do
@@ -278,6 +292,7 @@ defmodule Bitcoin.Structures.Block do
     end
   end
 
+  # Check for validity of the fields of the block
   defp valid_fields?(block) do
     header = Map.get(block, :block_header)
     Bitcoin.Schemas.BlockHeader.valid?(header) and Bitcoin.Schemas.Block.valid?(block)
