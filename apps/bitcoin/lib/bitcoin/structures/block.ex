@@ -194,6 +194,8 @@ defmodule Bitcoin.Structures.Block do
         )
 
       # Have a min time difference of  1 secs
+      # Because, a time_difference of 0 will make the new_target 0
+      # And log of 0 will produce an error
       time_difference = if trunc(time_difference) == 0, do: 1, else: time_difference
 
       # Calculate the new target in terms of bits
@@ -225,6 +227,8 @@ defmodule Bitcoin.Structures.Block do
       true
     else
       false -> 
+        false
+      {false, _} -> 
         false
     end
   end
