@@ -1,5 +1,6 @@
 defmodule Bitcoin.Mining do
   import Bitcoin.Utilities.Crypto
+  import Bitcoin.Utilities.Conversions
 
   @moduledoc """
   Module for mining  and related methods
@@ -7,15 +8,13 @@ defmodule Bitcoin.Mining do
 
   @doc """
   Initiate mining on a given `candidate_block`
-  Difficulty can be "faked" by specifying the number of zeros required in `fake_number_of_zeros` parameter
 
   Returns the mined block which contains the nonce in its header for which the target was achieved
   """
-  def initiate_mining(candidate_block, fake_number_of_zeros \\ nil) do
-    {_, zeros_required} =
-      Bitcoin.Structures.Block.calculate_target(candidate_block, fake_number_of_zeros)
-
-    mine_block(candidate_block, zeros_required)
+  def initiate_mining(candidate_block) do
+    target = Bitcoin.Structures.Block.calculate_target(candidate_block)
+    IO.inspect("Starting to mine....")
+    mine_block(candidate_block, target)
   end
 
   # mine_block
@@ -23,18 +22,28 @@ defmodule Bitcoin.Mining do
   # difficulty target
   # 
   # Returns the mined block with the calculated nonce
-  defp mine_block(candidate_block, zeros_required) do
+  defp mine_block(candidate_block, target) do
+    zeros_required = 32 - (String.trim_leading(target, <<0>>) |> byte_size)
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
     nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
-    IO.inspect(nonce)
+    #IO.inspect(nonce)
 
-    <<zeros_obtained::bytes-size(zeros_required), _::bits>> = header |> double_sha256
+    <<zeros_obtained_target::bytes-size(zeros_required), _::bits>> = target
+    <<zeros_obtained_header::bytes-size(zeros_required), _::bits>> = header |> double_sha256
 
-    if zeros_obtained == String.duplicate(<<0>>, zeros_required) do
+    hashed_value = header |> double_sha256
+    v1 = binary_to_decimal(hashed_value)
+    v2 = binary_to_decimal(target)
+
+    if zeros_obtained_header == zeros_obtained_target and v1 <= v2 do
+      IO.inspect("Done with mining....")
+      IO.inspect(hashed_value)
+      IO.inspect(target)
+      IO.inspect(nonce)
       candidate_block
     else
       increment_nonce(candidate_block)
-      |> mine_block(zeros_required)
+      |> mine_block(target)
     end
   end
 
