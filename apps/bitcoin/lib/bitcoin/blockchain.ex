@@ -74,9 +74,12 @@ defmodule Bitcoin.Blockchain do
           blocks = payload
           save_inventory(chain, blocks)
 
-        :new_block ->
+        :new_block_found ->
           # save_block
+          block = payload
+          chain = save_inventory(chain, block)
           # broadcast_block
+          broadcast_block(block)
           nil
 
         :new_transaction ->
@@ -118,5 +121,9 @@ defmodule Bitcoin.Blockchain do
   defp save_inventory(chain, blocks) do
     # DBs operations
     Chain.save(chain, blocks)
+  end
+
+
+  defp broadcast_block(block, node) do
   end
 end

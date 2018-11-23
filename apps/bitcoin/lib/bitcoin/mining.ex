@@ -1,20 +1,20 @@
 defmodule Bitcoin.Mining do
-  import Bitcoin.Utilities.Crypto
-  import Bitcoin.Utilities.Conversions
-
   @moduledoc """
   Module for mining  and related methods
   """
+  import Bitcoin.Utilities.Crypto
+  import Bitcoin.Utilities.Conversions
 
   @doc """
   Initiate mining on a given `candidate_block`
 
   Returns the mined block which contains the nonce in its header for which the target was achieved
   """
-  def initiate_mining(candidate_block) do
+  def initiate_mining(candidate_block, caller) do
     target = Bitcoin.Structures.Block.calculate_target(candidate_block)
     IO.inspect("Starting to mine....")
-    mine_block(candidate_block, target)
+    mined_block = mine_block(candidate_block, target)
+    send(caller, {:blockchain_handler, :new_block_found, mined_block})
   end
 
   # mine_block
@@ -26,7 +26,7 @@ defmodule Bitcoin.Mining do
     zeros_required = 32 - (String.trim_leading(target, <<0>>) |> byte_size)
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
     nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
-    #IO.inspect(nonce)
+    # IO.inspect(nonce)
 
     <<zeros_obtained_target::bytes-size(zeros_required), _::bits>> = target
     <<zeros_obtained_header::bytes-size(zeros_required), _::bits>> = header |> double_sha256

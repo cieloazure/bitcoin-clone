@@ -9,7 +9,7 @@ defmodule Bitcoin.MiningTest do
     zeros = 1
     genesis_block = Block.create_candidate_genesis_block(target)
     mined_block = Bitcoin.Mining.initiate_mining(genesis_block)
-    #IO.inspect(mined_block)
+    # IO.inspect(mined_block)
     assert Block.get_header_attr(mined_block, :nonce) != 1
 
     header = Block.get_attr(mined_block, :block_header)
@@ -24,7 +24,7 @@ defmodule Bitcoin.MiningTest do
     zeros = 2
     genesis_block = Block.create_candidate_genesis_block(target)
     mined_block = Bitcoin.Mining.initiate_mining(genesis_block)
-    #IO.inspect(mined_block)
+    # IO.inspect(mined_block)
     assert Block.get_header_attr(mined_block, :nonce) != 1
 
     header = Block.get_attr(mined_block, :block_header)

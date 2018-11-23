@@ -47,17 +47,11 @@ defmodule Chord.Defaults.Store do
   """
   @impl true
   def handle_info({:handle_message, message, payload}, {node, store}) do
+    IO.puts("In node #{inspect(node)}: got message #{inspect(message)}:#{inspect(payload)}")
     store =
       case message do
         :store ->
-          count = Enum.count(store, fn item -> payload == item end)
-
-          if count == 0 do
-            Chord.Node.propogate_broadcast(node, message, payload)
             [payload | store]
-          else
-            store
-          end
       end
 
     {:noreply, {node, store}}
