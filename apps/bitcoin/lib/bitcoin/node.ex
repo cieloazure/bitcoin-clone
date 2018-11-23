@@ -97,12 +97,9 @@ defmodule Bitcoin.Node do
     {:noreply, state}
   end
 
-  # @impl true
-  # def handle_cast({:start_mining}, state) do
-  # if(is_nil(state[:mining])) do
-  # state[:mining] = spawn(Bitcoin.Mining, :start, [])
-  # end
-  # end
+  #@impl true
+  #def handle_cast({:start_mining}, state) do
+  #end
 
   #
   # @impl true

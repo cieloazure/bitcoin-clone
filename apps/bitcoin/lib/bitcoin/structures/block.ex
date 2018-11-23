@@ -144,9 +144,10 @@ defmodule Bitcoin.Structures.Block do
          true <- valid_nonce?(block, chain, is_genesis_block) do
       true
     else
-      false -> 
+      false ->
         false
-      {false, _} -> 
+
+      {false, _} ->
         false
     end
   end
@@ -243,7 +244,6 @@ defmodule Bitcoin.Structures.Block do
       last_target
     end
   end
-
 
   # Check for validity of height of the block
   defp valid_height?(block, confirmed_chain) do
