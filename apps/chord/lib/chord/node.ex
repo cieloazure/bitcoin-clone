@@ -1,3 +1,4 @@
+require IEx;
 defmodule Chord.Node do
   @moduledoc """
   Chord.Node
@@ -9,7 +10,8 @@ defmodule Chord.Node do
   alias Helpers.CircularInterval
 
   @default_number_of_bits 24
-  @default_size_succ_list 24
+  #TODO: CHange
+  @default_size_succ_list 8
 
   ###             ###
   ###             ###
@@ -188,6 +190,7 @@ defmodule Chord.Node do
   Chord.Node.initiate_broadcast
   """
   def initiate_broadcast(node, message, payload \\ nil) do
+    IO.puts("Initiating broadcast from node...")
     GenServer.cast(node, {:initiate_broadcast, message, payload})
   end
 
@@ -554,6 +557,7 @@ defmodule Chord.Node do
   """
   @impl true
   def handle_cast({:initiate_broadcast, message, payload}, state) do
+    IO.inspect("in Intitate_broadcast: at node")
     # Delegate broadcast to common store as distributed store is not applicable
     send(state[:store], {:handle_message, message, payload})
 
@@ -579,6 +583,7 @@ defmodule Chord.Node do
 
   @impl true
   def handle_cast({:receive_broadcast, limit, message, payload}, state) do
+    IO.inspect("At receive broadcast of the node #{inspect(state[:ip_addr])}, delegating message to store")
     # Delegate broadcast to common store
     send(state[:store], {:handle_message, message, payload})
 

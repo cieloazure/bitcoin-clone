@@ -75,12 +75,11 @@ defmodule Bitcoin.Blockchain do
           save_inventory(chain, blocks)
 
         :new_block_found ->
+          new_block_found(payload, node)
+          chain
           # save_block
-          block = payload
-          chain = save_inventory(chain, block)
-          # broadcast_block
-          broadcast_block(block)
-          nil
+          # block = payload
+          # save_inventory(chain, block)
 
         :new_transaction ->
           # save_transaction
@@ -124,6 +123,7 @@ defmodule Bitcoin.Blockchain do
   end
 
 
-  defp broadcast_block(block, node) do
+  defp new_block_found(payload, node) do
+    IO.puts("here  at the store of #{inspect(:sys.get_state(node)[:ip_addr])}")
   end
 end

@@ -5,16 +5,20 @@ defmodule Bitcoin.Mining do
   import Bitcoin.Utilities.Crypto
   import Bitcoin.Utilities.Conversions
 
+  def mine_async(candidate_block, bitcoin_node) do
+    mined_block = initiate_mining(candidate_block)
+    Bitcoin.Node.new_block_found(bitcoin_node, mined_block)
+  end
+
   @doc """
   Initiate mining on a given `candidate_block`
 
   Returns the mined block which contains the nonce in its header for which the target was achieved
   """
-  def initiate_mining(candidate_block, caller) do
+  def initiate_mining(candidate_block) do
     target = Bitcoin.Structures.Block.calculate_target(candidate_block)
     IO.inspect("Starting to mine....")
-    mined_block = mine_block(candidate_block, target)
-    send(caller, {:blockchain_handler, :new_block_found, mined_block})
+    mine_block(candidate_block, target)
   end
 
   # mine_block

@@ -6,7 +6,7 @@ defmodule ChordTest do
   require Logger
 
   test "run simulation" do
-    api_list = run(100, 10, 8)
+    api_list = run(10, 10, 8)
     IO.inspect(api_list)
     api = List.first(api_list)
     IO.inspect(api)
