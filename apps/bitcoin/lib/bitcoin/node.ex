@@ -71,6 +71,7 @@ defmodule Bitcoin.Node do
     ip_addr = Keyword.get(opts, :ip_addr)
     seed = Keyword.get(opts, :seed)
     genesis_block = Keyword.get(opts, :genesis_block)
+    wallet = Bitcoin.Wallet.init_wallet()
 
     {:ok, blockchain} =
       Bitcoin.Blockchain.start_link(
@@ -79,8 +80,6 @@ defmodule Bitcoin.Node do
       )
 
     {:ok, chord_api} = Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed)
-
-    {:ok, wallet} = Bitcoin.Wallet.start_link([])
 
     {:ok,
      [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil, wallet: wallet]}
@@ -101,21 +100,15 @@ defmodule Bitcoin.Node do
   # @impl true
   # def handle_cast({:start_mining}, state) do
   # if(is_nil(state[:mining])) do
-  # state[:mining] = spawn(Bitcoin.Mining, :start)
+  # state[:mining] = spawn(Bitcoin.Mining, :start, [])
   # end
   # end
+
   #
   # @impl true
   # def handle_cast({:create_transaction}, state) do
   # transaction = Transaction.create_transaction(blockchain)
   # send(node, {:blockchain_handler, :new_transaction, transaction})
-  # end
-  # 
-  # @impl true
-  # def handle_cast({:start_wallet}, state) do
-  # # generate a private key
-  # # generate a public key
-  # # generate a bitcoin address
   # end
 
   @doc """

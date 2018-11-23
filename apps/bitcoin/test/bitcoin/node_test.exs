@@ -1,9 +1,10 @@
 defmodule Bitcoin.NodeTest do
   use ExUnit.Case
+  alias Bitcoin.Structures.Block
 
   test "sync operation without any peers will not change the blockchain" do
     {:ok, seed} = SeedServer.start_link([])
-    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
+    genesis_block = Block.create_candidate_genesis_block()
 
     {:ok, node} =
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
@@ -18,7 +19,7 @@ defmodule Bitcoin.NodeTest do
 
   test "sync operation with one  peers will change the blockchain" do
     {:ok, seed} = SeedServer.start_link([])
-    {:ok, genesis_block} = Bitcoin.Structures.Block.get_genesis_block()
+    genesis_block = Block.create_candidate_genesis_block()
 
     {:ok, node1} =
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)

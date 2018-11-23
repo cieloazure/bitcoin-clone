@@ -1,4 +1,7 @@
 defmodule Bitcoin.Structures.Chain do
+  @moduledoc """
+  Module to manipulate the chain. May be moved to the database in the future
+  """
   alias Bitcoin.Structures.Block
 
   @doc """
@@ -20,7 +23,7 @@ defmodule Bitcoin.Structures.Chain do
   Topmost item signifies the last block
   """
   def top(chain) do
-    List.last(chain)
+    sort(chain, :height) |> List.last()
   end
 
   @doc """
@@ -41,6 +44,9 @@ defmodule Bitcoin.Structures.Chain do
     missing_blocks ++ chain
   end
 
+  @doc """
+  Save a block in the chain
+  """
   def save(chain, block) do
     [block | chain]
   end
@@ -58,6 +64,10 @@ defmodule Bitcoin.Structures.Chain do
     Enum.filter(chain, condition)
   end
 
+  @doc """
+  Sort the chain structure according to a field
+  Field may be :height, :timestamp, etc/
+  """
   def sort(chain, field) do
     Enum.sort(chain, fn block1, block2 ->
       Block.get_attr(block1, field) <= Block.get_attr(block2, field)
