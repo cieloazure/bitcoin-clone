@@ -91,6 +91,6 @@ defmodule Bitcoin.NodeTest do
 
     Process.sleep(3000)
     Bitcoin.Node.new_block_found(node1, "<new-block-to-broadcast>")
-    Process.sleep(100000000)
+    Process.sleep(5000)
   end
 end
