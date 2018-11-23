@@ -149,6 +149,7 @@ defmodule Chord do
   """
   @impl true
   def handle_cast({:broadcast, message, payload}, {node, _} = state) do
+    IO.puts("initiating broadcast from api....")
     Chord.Node.initiate_broadcast(node, message, payload)
     {:noreply, state}
   end
@@ -170,8 +171,8 @@ defmodule Chord do
   Kills the node process and sets off the chain to kill the processes in node
   """
   @impl true
-  def terminate(_reason, {node, _}) do
-    # IO.inspect("Terminating api")
+  def terminate(reason, {node, _}) do
+    IO.inspect("Terminating api #{inspect(reason)}")
     Process.exit(node, :normal)
   end
 end

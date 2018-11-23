@@ -28,6 +28,10 @@ defmodule Bitcoin.Node do
     GenServer.cast(node, {:sync})
   end
 
+  def new_block_found(node, new_block) do
+    GenServer.call(node, {:new_block_found, new_block})
+  end
+
   # @doc """
   # Bitcoin.Node.start_mining
   # """
@@ -79,7 +83,7 @@ defmodule Bitcoin.Node do
         node: self()
       )
 
-    {:ok, chord_api} = Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed)
+    {:ok, chord_api} = Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed, number_of_bits: 8)
 
     {:ok,
      [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil, wallet: wallet]}
@@ -94,6 +98,13 @@ defmodule Bitcoin.Node do
   def handle_cast({:sync}, state) do
     top_hash = Bitcoin.Blockchain.top_block(state[:blockchain])
     Chord.send_peers(state[:chord_api], :getblocks, {top_hash, self()})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_call({:new_block_found, new_block}, from, state) do
+    GenServer.reply(from, {:reply, new_block, state})
+    Chord.broadcast(state[:chord_api], :new_block_found, new_block)
     {:noreply, state}
   end
 

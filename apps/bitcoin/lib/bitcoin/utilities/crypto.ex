@@ -1,5 +1,5 @@
 defmodule Bitcoin.Utilities.Crypto do
-  @module """
+  @moduledoc """
   Module to handle various operations of the erlang crypto library
   Can be imported into another module to use functions in this library
   """

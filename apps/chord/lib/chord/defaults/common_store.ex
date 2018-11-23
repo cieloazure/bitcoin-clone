@@ -47,10 +47,10 @@ defmodule Chord.Defaults.Store do
   """
   @impl true
   def handle_info({:handle_message, message, payload}, {node, store}) do
-    IO.puts("In node #{inspect(node)}: got message #{inspect(message)}:#{inspect(payload)}")
     store =
       case message do
         :store ->
+            IO.puts("Got broadcast from #{inspect(node)}")
             [payload | store]
       end
 
