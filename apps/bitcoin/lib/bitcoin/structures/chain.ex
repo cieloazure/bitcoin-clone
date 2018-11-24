@@ -3,6 +3,7 @@ defmodule Bitcoin.Structures.Chain do
   Module to manipulate the chain. May be moved to the database in the future
   """
   alias Bitcoin.Structures.Block
+  import Bitcoin.Utilities.Crypto
 
   @doc """
   Instantiate a new chain
@@ -72,5 +73,25 @@ defmodule Bitcoin.Structures.Chain do
     Enum.sort(chain, fn block1, block2 ->
       Block.get_attr(block1, field) <= Block.get_attr(block2, field)
     end)
+  end
+
+  @doc """
+  Fork a chain and return the new chain and forks
+  """
+  def fork(chain, new_block) do
+    prev_block_hash = Block.get_header_attr(new_block, :prev_block_hash)
+
+    block =
+      Enum.find(chain, fn block ->
+        prev_block_hash == Block.get_attr(block, :block_header) |> double_sha256
+      end)
+
+    {main_chain, fork} =
+      Enum.split_with(chain, fn b ->
+        Block.get_attr(b, :height) <= Block.get_attr(block, :height)
+      end)
+
+    forks = [fork, new_block]
+    {main_chain, forks}
   end
 end
