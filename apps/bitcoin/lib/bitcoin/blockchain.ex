@@ -1,3 +1,4 @@
+require IEx;
 defmodule Bitcoin.Blockchain do
   @moduledoc """
   Bitcoin.Blockchain
@@ -91,7 +92,10 @@ defmodule Bitcoin.Blockchain do
           {new_chain, forks, orphans}
 
         :new_block_found ->
-          new_block_found(payload, node, {chain, forks, orphans})
+          {new_chain, new_forks, new_orphans} = new_block_found(payload, node, {chain, forks, orphans})
+          IEx.pry
+          Bitcoin.Node.start_mining(node, new_chain)
+          {new_chain, new_forks, new_orphans}
 
         :new_transaction ->
           # save_transaction
@@ -137,20 +141,25 @@ defmodule Bitcoin.Blockchain do
   defp new_block_found(payload, node, {chain, forks, orphans}) do
     IO.puts("here  at the store of #{inspect(:sys.get_state(node)[:ip_addr])}")
     new_block = payload
-
-    case find_block(new_block, {chain, forks}) do
+    {location, condition} = find_block(new_block, {chain, forks}) 
+    IEx.pry
+    case {location, condition} do
       {:in_chain, :at_top} ->
-        {[new_block | chain], forks, orphans}
+        new_chain = [new_block | chain]
+        {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
+        {new_chain, forks, orphans}
 
       {:in_chain, :with_fork} ->
         {chain, forks} = Chain.fork(chain, new_block)
+        {forks, orphans} = consolidate_orphans_in_forks(forks, orphans)
         {chain, forks, orphans}
 
       {:in_fork, fork_index} ->
         fork = Enum.at(forks, fork_index)
         extended_fork = [new_block | fork]
-        chain = extended_fork
-        {chain, [], orphans}
+        new_chain = extended_fork
+        {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
+        {new_chain, [], orphans}
 
       {:in_orphan} ->
         {chain, forks, [new_block | orphans]}
@@ -191,5 +200,26 @@ defmodule Bitcoin.Blockchain do
         {:in_orphan}
       end
     end
+  end
+  
+
+  defp consolidate_orphans_in_forks(forks, orphans) do
+    Enum.map_reduce(forks, orphans, fn fork_list, orphans -> 
+      consolidate_orphans(fork_list, orphans)
+    end)
+  end
+
+  defp consolidate_orphans(chain, orphans) do
+    # any of the orphans
+    {no_more_orphans, still_orphans} = Enum.split_with(orphans, fn orphan -> 
+      prev_hash = Block.get_header_attr(orphan, :prev_block_hash)
+      ## TODO: prev block find can be refactored into a separate function
+      # It is being repeated a lot
+      block = Enum.find(chain, fn block -> 
+        prev_hash == Block.get_attr(block, :block_header) |> double_sha256
+      end)
+      !is_nil(block)
+    end)
+    {chain ++ no_more_orphans, still_orphans}
   end
 end

@@ -10,7 +10,7 @@ defmodule Bitcoin.BlockchainTest do
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
     blockchain = :sys.get_state(node)[:blockchain]
-    {n, g} = :sys.get_state(blockchain)
+    {n, {g, _,_}} = :sys.get_state(blockchain)
     assert node == n
     assert List.first(g) == genesis_block
   end
@@ -34,13 +34,13 @@ defmodule Bitcoin.BlockchainTest do
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
     blockchain = :sys.get_state(node)[:blockchain]
-    {_n, g} = :sys.get_state(blockchain)
+    {_n, {g, _,_}} = :sys.get_state(blockchain)
 
     new_items = %Bitcoin.Schemas.Block{}
 
     send(blockchain, {:handle_message, :inv, new_items})
 
-    {_n, g1} = :sys.get_state(blockchain)
+    {_n, {g1, _,_}} = :sys.get_state(blockchain)
     assert g1 == [new_items | g]
   end
 
@@ -52,7 +52,7 @@ defmodule Bitcoin.BlockchainTest do
       Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
 
     blockchain = :sys.get_state(node)[:blockchain]
-    {_n, g} = :sys.get_state(blockchain)
+    {_n, {g, _,_}} = :sys.get_state(blockchain)
 
     new_items =
       for _n <- 1..10 do
@@ -60,7 +60,7 @@ defmodule Bitcoin.BlockchainTest do
       end
 
     send(blockchain, {:handle_message, :inv, new_items})
-    {_n, g1} = :sys.get_state(blockchain)
+    {_n, {g1, _,_}} = :sys.get_state(blockchain)
     assert g1 == new_items ++ g
   end
 

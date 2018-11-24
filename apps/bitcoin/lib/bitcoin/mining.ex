@@ -1,3 +1,4 @@
+require IEx;
 defmodule Bitcoin.Mining do
   @moduledoc """
   Module for mining  and related methods
@@ -30,7 +31,7 @@ defmodule Bitcoin.Mining do
     zeros_required = 32 - (String.trim_leading(target, <<0>>) |> byte_size)
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
     nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
-    # IO.inspect(nonce)
+    IO.inspect(nonce)
 
     <<zeros_obtained_target::bytes-size(zeros_required), _::bits>> = target
     <<zeros_obtained_header::bytes-size(zeros_required), _::bits>> = header |> double_sha256
