@@ -168,6 +168,7 @@ defmodule Bitcoin.Blockchain do
     if !is_nil(block) do
       top = Chain.top(chain)
       top_hash = Block.get_attr(top, :block_header) |> double_sha256
+
       if prev_hash == top_hash do
         {:in_chain, :at_top}
       else
@@ -176,9 +177,11 @@ defmodule Bitcoin.Blockchain do
     else
       fork_index =
         Enum.find_index(forks, fn fork ->
-          block = Enum.find(fork, fn block ->
-            prev_hash == Block.get_attr(block, :block_header) |> double_sha256
-          end)
+          block =
+            Enum.find(fork, fn block ->
+              prev_hash == Block.get_attr(block, :block_header) |> double_sha256
+            end)
+
           !is_nil(block)
         end)
 
