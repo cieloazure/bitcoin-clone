@@ -46,7 +46,7 @@ defmodule Chord do
   Send message to every node in the chord network
   """
   def broadcast(api, message, data) do
-    GenServer.cast(api, {:create_broadcast, message, data})
+    GenServer.cast(api, {:broadcast, message, data})
   end
 
   @doc """
@@ -148,8 +148,9 @@ defmodule Chord do
   Chord callback to create a broadcast
   """
   @impl true
-  def handle_cast({:create_broadcast, message, payload}, {node, _} = state) do
-    Chord.Node.handle_broadcast(node, message, payload)
+  def handle_cast({:broadcast, message, payload}, {node, _} = state) do
+    IO.puts("initiating broadcast from api....")
+    Chord.Node.initiate_broadcast(node, message, payload)
     {:noreply, state}
   end
 
@@ -171,7 +172,7 @@ defmodule Chord do
   """
   @impl true
   def terminate(_reason, {node, _}) do
-    # IO.inspect("Terminating api")
+    #IO.inspect("Terminating api #{inspect(reason)}")
     Process.exit(node, :normal)
   end
 end

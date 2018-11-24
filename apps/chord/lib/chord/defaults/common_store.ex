@@ -50,14 +50,8 @@ defmodule Chord.Defaults.Store do
     store =
       case message do
         :store ->
-          count = Enum.count(store, fn item -> payload == item end)
-
-          if count == 0 do
-            Chord.Node.propogate_broadcast(node, message, payload)
+            IO.puts("Got broadcast from #{inspect(node)}")
             [payload | store]
-          else
-            store
-          end
       end
 
     {:noreply, {node, store}}

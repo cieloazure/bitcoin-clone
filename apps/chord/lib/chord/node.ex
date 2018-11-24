@@ -1,3 +1,4 @@
+require IEx;
 defmodule Chord.Node do
   @moduledoc """
   Chord.Node
@@ -6,9 +7,11 @@ defmodule Chord.Node do
   """
   use GenServer
   require Logger
+  alias Helpers.CircularInterval
 
   @default_number_of_bits 24
-  @default_size_succ_list 24
+  #TODO: CHange
+  @default_size_succ_list 8
 
   ###             ###
   ###             ###
@@ -16,6 +19,9 @@ defmodule Chord.Node do
   ###             ###
   ###             ###
 
+
+  ##### SECTION 1: CORE PROTOCOL #####
+  
   @doc """
   Chord.Node.start_link
 
@@ -79,6 +85,8 @@ defmodule Chord.Node do
     GenServer.cast(node, {:update_successor, new_successor})
   end
 
+  #####  SECTION 2: DISTRIBUTED STORE #####
+
   @doc """
   Chord.Node.read
 
@@ -109,6 +117,9 @@ defmodule Chord.Node do
     GenServer.cast(node, {:transfer_keys, predeccessor_identifier, predeccessor_pid})
   end
 
+
+  ##### SECTION 3: FAILURE HANDLING ######
+  
   @doc """
   Chord.Node.get_succ_list
 
@@ -172,22 +183,22 @@ defmodule Chord.Node do
     GenServer.cast(node, {:failed_successor})
   end
 
-  @doc """
-  Chord.Node.handle_broadcast
 
-  Decide what to do when a broadcast message is received; it may either choose to propogate the broadcast or stop propogation
+  ###### SECTION 4: BROADCAST AND IMMEDIATE PEER COMMUNICATION ######
+  
+  @doc """
+  Chord.Node.initiate_broadcast
   """
-  def handle_broadcast(node, message, payload \\ nil) do
-    GenServer.cast(node, {:broadcast, message, payload})
+  def initiate_broadcast(node, message, payload \\ nil) do
+    IO.puts("Initiating broadcast from node...")
+    GenServer.cast(node, {:initiate_broadcast, message, payload})
   end
 
   @doc """
-  Chord.Node.propogate_broadcast
-
-  Propogate the broadcast to the node's peers
+  Chord.Node.receive_broadcast
   """
-  def propogate_broadcast(node, message, payload \\ nil) do
-    GenServer.cast(node, {:propogate_broadcast, message, payload})
+  def receive_broadcast(node, limit, message, payload \\ nil) do
+    GenServer.cast(node, {:receive_broadcast, limit, message, payload})
   end
 
   @doc """
@@ -318,6 +329,9 @@ defmodule Chord.Node do
        store: store
      ]}
   end
+
+  ##### ASYNCRONOUS METHODS: handle_casts #####
+  
 
   @doc """
   Chord.Node.handle_cast for `:join`
@@ -542,25 +556,60 @@ defmodule Chord.Node do
   Chord.Node.handle_cast for :broadcast
   """
   @impl true
-  def handle_cast({:handle_broadcast, message, payload}, state) do
-    # Delegate it to common store
+  def handle_cast({:initiate_broadcast, message, payload}, state) do
+    IO.inspect("in Intitate_broadcast: at node")
+    # Delegate broadcast to common store as distributed store is not applicable
     send(state[:store], {:handle_message, message, payload})
-    {:noreply, state}
-  end
 
-  @doc """
-  Chord.Node.handle_cast for :propogate_broadcast
-  """
-  @impl true
-  def handle_cast({:propogate_broadcast, message, payload}, state) do
-    peers = [state[:predeccessor] | state[:successor_list]]
-
-    Enum.each(peers, fn peer ->
-      if peer[:pid] != self() do
-        Chord.Node.handle_broadcast(peer[:pid], message, payload)
+    Enum.uniq_by(state[:finger_table], fn {_k, finger} -> finger[:identifier] end)
+    |> Enum.chunk_every(2, 1, [nil])
+    |> Enum.each(fn [finger, next_finger] -> 
+      {_, finger} = finger
+      # Check for last finger
+      if !is_nil(next_finger) do
+        {_, next_finger}  = next_finger
+        if finger[:pid] != self() and finger[:pid] != nil do
+          Chord.Node.receive_broadcast(finger[:pid], next_finger[:identifier], message, payload)
+        end
+      else
+        if finger[:pid] != self() and finger[:pid] != nil do
+          Chord.Node.receive_broadcast(finger[:pid], state[:identifier], message, payload)
+        end
       end
     end)
 
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:receive_broadcast, limit, message, payload}, state) do
+    IO.inspect("At receive broadcast of the node #{inspect(state[:ip_addr])}, delegating message to store")
+    # Delegate broadcast to common store
+    send(state[:store], {:handle_message, message, payload})
+
+    Enum.uniq_by(state[:finger_table], fn {_k, finger} -> finger[:identifier] end)
+    |> Enum.chunk_every(2, 1, [nil])
+    |> Enum.each(fn [finger, next_finger] -> 
+      {_, finger} = finger
+
+      # Check whether it lies within interval
+      if CircularInterval.open_interval_check(finger[:identifier], state[:identifier], limit) do
+        # Check for last finger
+        if !is_nil(next_finger) do
+          {_, next_finger}  = next_finger
+          new_limit = if CircularInterval.open_interval_check(next_finger[:identifier], state[:identifier], limit) do
+            next_finger[:identifier]
+          else
+            limit
+          end
+
+          Chord.Node.receive_broadcast(finger[:pid], new_limit, message, payload)
+        else
+          Chord.Node.receive_broadcast(finger[:pid], state[:identifier], message, payload)
+        end
+      end
+
+    end)
     {:noreply, state}
   end
 
@@ -580,6 +629,10 @@ defmodule Chord.Node do
 
     {:noreply, state}
   end
+
+
+  ####### SYNCHRONOUS METHODS: handle_calls ###########
+
 
   @doc """
   Chord.Node.handle_call for `:get_predeccessor`
