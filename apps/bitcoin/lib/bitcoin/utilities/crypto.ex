@@ -40,6 +40,14 @@ defmodule Bitcoin.Utilities.Crypto do
   end
 
   # Serialize the data for further processing
+  def sign(msg, private_key) do
+    :crypto.sign(:ecdsa, :sha256, msg, [private_key, :secp256k1])
+  end
+
+  def verify(msg, public_key, signature) do
+    :crypto.verify(:ecdsa, :sha256, msg, signature, [public_key, :secp256k1])
+  end
+
   defp serialize(data) do
     :erlang.term_to_binary(data)
   end

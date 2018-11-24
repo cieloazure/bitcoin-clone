@@ -7,15 +7,15 @@ defmodule Bitcoin.Utilities.Base58Check do
   @doc """
   Base58Check encoding algorithm
   """
-  def encode(version, data) do
-    (version <> data <> checksum(version, data))
+  def encode(data, version \\ <<0x00>>) do
+    (version <> data <> checksum(data, version))
     |> Bitcoin.Utilities.Base58.encode()
   end
 
   ### PRIVATE FUNCTION ###
 
   # checksum
-  defp checksum(version, data) do
+  defp checksum(data, version \\ <<0x00>>) do
     (version <> data)
     |> sha256
     |> sha256

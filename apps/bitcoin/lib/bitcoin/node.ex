@@ -41,6 +41,10 @@ defmodule Bitcoin.Node do
     GenServer.cast(node, {:start_mining, chain})
   end
 
+  def transfer_money(node, recipient, amount, fees \\ 0) do
+    GenServer.cast(node, {:transfer_money, recipient, amount, fees})
+  end
+
   ###                      ###
   ###                      ###
   ### GenServer Callbacks  ###
@@ -75,7 +79,14 @@ defmodule Bitcoin.Node do
       Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed, number_of_bits: 8)
 
     {:ok,
-     [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil, wallet: wallet]}
+     [
+       ip_addr: ip_addr,
+       blockchain: blockchain,
+       chord_api: chord_api,
+       mining: nil,
+       wallet: wallet,
+       tx_pool: []
+     ]}
   end
 
   @doc """
@@ -118,6 +129,42 @@ defmodule Bitcoin.Node do
   end
 
   @doc """
+  Bitcoin.Node.handle_cast for ':transfer_money'
+
+  callback to initiate new transaction
+  """
+  @impl true
+  def handle_cast({:transfer_money, recipient, amount, fees}, state) do
+    chain = Bitcoin.Blockchain.get_chain(state[:blockchain])
+
+    utxo =
+      Bitcoin.Wallet.collect_utxo(
+        state[:wallet][:public_key],
+        state[:wallet][:private_key],
+        chain
+      )
+
+    tx_ins = Bitcoin.Structures.Transaction.get_required_inputs(utxo, amount)
+
+    transaction =
+      Bitcoin.Structures.Transaction.create_transaction(
+        state[:wallet],
+        recipient,
+        tx_ins,
+        amount,
+        fees
+      )
+
+    # BROADCAST 
+    # add transaction to this node's transaction pool
+    state = Keyword.put(state, :tx_pool, List.add(state[:tx_pool], transaction))
+    # Broadcast this transaction to other nodes
+    Chord.send_peers(state[:chord_api], :new_transaction, transaction)
+
+    {:noreply, state}
+  end
+
+  @doc """
   Callback to handle when a new block is found
   """
   @impl true
@@ -135,5 +182,12 @@ defmodule Bitcoin.Node do
   def handle_info({:blockchain_handler, message, payload}, state) do
     send(state[:blockchain], {:handle_message, message, payload})
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:new_transaction, transaction}, state) do
+    state = Keyword.put(state, :tx_pool, List.add(state[:tx_pool], transaction))
+
+    {:node, state}
   end
 end

@@ -14,6 +14,7 @@ defmodule Bitcoin.Utilities.Base58 do
   def encode(0, hash), do: hash
 
   def encode(data, hash) when is_binary(data) do
+    IO.inspect(encode_zeros(data))
     encode_zeros(data) <> encode(:binary.decode_unsigned(data), hash)
   end
 
