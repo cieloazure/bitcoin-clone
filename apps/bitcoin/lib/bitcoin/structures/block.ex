@@ -51,7 +51,11 @@ defmodule Bitcoin.Structures.Block do
   @doc """
   Create a candidate block for mining
   """
-  def create_candidate_block(transaction_pool, blockchain, recipient \\ "<bitcoin-address-from-wallet>") do
+  def create_candidate_block(
+        transaction_pool,
+        blockchain,
+        recipient \\ "<bitcoin-address-from-wallet>"
+      ) do
     last_block = Bitcoin.Structures.Chain.top(blockchain)
     timestamp = DateTime.utc_now()
     height = get_attr(last_block, :height) + 1
