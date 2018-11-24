@@ -1,4 +1,5 @@
-require IEx;
+require IEx
+
 defmodule Bitcoin.Node do
   @moduledoc """
   A Bitcoin full node
@@ -102,10 +103,17 @@ defmodule Bitcoin.Node do
     chain = given_chain || Bitcoin.Blockchain.get_chain(state[:blockchain])
     # transaction_pool = Bitcoin.Transactions.get_transaction_pool()
     transaction_pool = []
-    candidate_block = Bitcoin.Structures.Block.create_candidate_block(transaction_pool, chain, state[:wallet][:bitcoin_address])
+
+    candidate_block =
+      Bitcoin.Structures.Block.create_candidate_block(
+        transaction_pool,
+        chain,
+        state[:wallet][:bitcoin_address]
+      )
+
     {:ok, pid} = Task.start(Bitcoin.Mining, :mine_async, [candidate_block, self()])
     state = Keyword.put(state, :mining, pid)
-    #Bitcoin.Mining.mine_async(candidate_block, self())
+    # Bitcoin.Mining.mine_async(candidate_block, self())
     {:noreply, state}
   end
 
