@@ -102,7 +102,6 @@ defmodule Bitcoin.Node do
     {:noreply, state}
   end
 
-
   @doc """
   """
   @impl true
@@ -132,13 +131,6 @@ defmodule Bitcoin.Node do
     {:noreply, state}
   end
 
-  #
-  # @impl true
-  # def handle_cast({:create_transaction}, state) do
-  # transaction = Transaction.create_transaction(blockchain)
-  # send(node, {:blockchain_handler, :new_transaction, transaction})
-  # end
-
   @doc """
   Bitcoin.Node.handle_cast for `:blockchain_handler`
 
@@ -149,6 +141,4 @@ defmodule Bitcoin.Node do
     send(state[:blockchain], {:handle_message, message, payload})
     {:noreply, state}
   end
-
-  ##### PRIVATE FUNCTIONS ####
 end
