@@ -8,7 +8,7 @@ defmodule Bitcoin.Structures.Chain do
   @doc """
   Instantiate a new chain
   """
-  def new_chain(genesis_block) do
+  def new_chain(genesis_block) when is_map(genesis_block) do
     # Create a new collection of blocks or chain of blocks in the database of
     # the node 
     # Insert the genesis block as the the first record in the table
@@ -23,7 +23,7 @@ defmodule Bitcoin.Structures.Chain do
   Get the topmost item of the chain
   Topmost item signifies the last block
   """
-  def top(chain) do
+  def top(chain) when is_list(chain) do
     sort(chain, :height) |> List.last()
   end
 
@@ -48,7 +48,7 @@ defmodule Bitcoin.Structures.Chain do
   @doc """
   Save a block in the chain
   """
-  def save(chain, block) do
+  def save(chain, block) when is_map(block) do
     [block | chain]
   end
 
@@ -61,7 +61,7 @@ defmodule Bitcoin.Structures.Chain do
     chain
   end
 
-  def get_blocks(chain, condition) do
+  def get_blocks(chain, condition) when is_list(chain) do
     Enum.filter(chain, condition)
   end
 
@@ -69,7 +69,7 @@ defmodule Bitcoin.Structures.Chain do
   Sort the chain structure according to a field
   Field may be :height, :timestamp, etc/
   """
-  def sort(chain, field) do
+  def sort(chain, field) when is_list(chain) do
     Enum.sort(chain, fn block1, block2 ->
       Block.get_attr(block1, field) <= Block.get_attr(block2, field)
     end)
@@ -78,7 +78,7 @@ defmodule Bitcoin.Structures.Chain do
   @doc """
   Fork a chain and return the new chain and forks
   """
-  def fork(chain, new_block) do
+  def fork(chain, new_block) when is_list(chain) do
     prev_block_hash = Block.get_header_attr(new_block, :prev_block_hash)
 
     block =
@@ -91,7 +91,7 @@ defmodule Bitcoin.Structures.Chain do
         Block.get_attr(b, :height) <= Block.get_attr(block, :height)
       end)
 
-    forks = [fork, new_block]
+    forks = [fork, [new_block]]
     {main_chain, forks}
   end
 end
