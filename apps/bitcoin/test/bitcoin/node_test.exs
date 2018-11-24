@@ -52,42 +52,88 @@ defmodule Bitcoin.NodeTest do
              Bitcoin.Structures.Chain.sort([genesis_block | new_items], :height)
   end
 
-
   test "broadcast" do
     alias Bitcoin.Structures.Block
     {:ok, seed} = SeedServer.start_link([])
     genesis_block = Block.create_candidate_genesis_block()
+
     {:ok, node1} =
-      Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block, identifier: 1)
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.1",
+        seed: seed,
+        genesis_block: genesis_block,
+        identifier: 1
+      )
 
     Process.sleep(1000)
+
     {:ok, node2} =
-      Bitcoin.Node.start_link(ip_addr: "192.168.0.2", seed: seed, genesis_block: genesis_block, identifier: 2)
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.2",
+        seed: seed,
+        genesis_block: genesis_block,
+        identifier: 2
+      )
 
     Process.sleep(1000)
 
     {:ok, node3} =
-      Bitcoin.Node.start_link(ip_addr: "192.168.0.3", seed: seed, genesis_block: genesis_block, identifier: 3)
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.3",
+        seed: seed,
+        genesis_block: genesis_block,
+        identifier: 3
+      )
 
     Process.sleep(1000)
+
     {:ok, node4} =
-      Bitcoin.Node.start_link(ip_addr: "192.168.0.4", seed: seed, genesis_block: genesis_block, identifier: 4)
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.4",
+        seed: seed,
+        genesis_block: genesis_block,
+        identifier: 4
+      )
 
     Process.sleep(1000)
+
     {:ok, node5} =
-      Bitcoin.Node.start_link(ip_addr: "192.168.0.5", seed: seed, genesis_block: genesis_block, identifier: 5)
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.5",
+        seed: seed,
+        genesis_block: genesis_block,
+        identifier: 5
+      )
 
     Process.sleep(1000)
+
     {:ok, node6} =
-      Bitcoin.Node.start_link(ip_addr: "192.168.0.6", seed: seed, genesis_block: genesis_block, identifier: 6)
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.6",
+        seed: seed,
+        genesis_block: genesis_block,
+        identifier: 6
+      )
 
     Process.sleep(1000)
+
     {:ok, node7} =
-      Bitcoin.Node.start_link(ip_addr: "192.168.0.7", seed: seed, genesis_block: genesis_block, identifier: 7)
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.7",
+        seed: seed,
+        genesis_block: genesis_block,
+        identifier: 7
+      )
 
     Process.sleep(1000)
+
     {:ok, node8} =
-      Bitcoin.Node.start_link(ip_addr: "192.168.0.8", seed: seed, genesis_block: genesis_block, identifier: 8)
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.8",
+        seed: seed,
+        genesis_block: genesis_block,
+        identifier: 8
+      )
 
     Process.sleep(3000)
     Bitcoin.Node.new_block_found(node1, "<new-block-to-broadcast>")

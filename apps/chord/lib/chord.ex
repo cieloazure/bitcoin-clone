@@ -171,8 +171,8 @@ defmodule Chord do
   Kills the node process and sets off the chain to kill the processes in node
   """
   @impl true
-  def terminate(reason, {node, _}) do
-    IO.inspect("Terminating api #{inspect(reason)}")
+  def terminate(_reason, {node, _}) do
+    #IO.inspect("Terminating api #{inspect(reason)}")
     Process.exit(node, :normal)
   end
 end

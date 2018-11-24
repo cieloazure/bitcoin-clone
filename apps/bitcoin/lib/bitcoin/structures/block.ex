@@ -141,7 +141,7 @@ defmodule Bitcoin.Structures.Block do
   def valid?(block, chain) do
     with true <- valid_fields?(block),
          {true, is_genesis_block} <- valid_height?(block, chain),
-         true <- valid_nonce?(block, chain, is_genesis_block) do
+         true <- valid_proof_of_work?(block, chain, is_genesis_block) do
       true
     else
       false ->
@@ -218,20 +218,25 @@ defmodule Bitcoin.Structures.Block do
       time_difference =
         DateTime.diff(
           get_header_attr(last_block, :timestamp),
-          get_header_attr(first_block, :timestamp)
+          get_header_attr(first_block, :timestamp),
+          :nanoseconds
         )
 
-      # Have a min time difference of  1 secs
+      # Checking time difference
       # Because, a time_difference of 0 will make the new_target 0
       # And log of 0 will produce an error
-      time_difference = if trunc(time_difference) == 0, do: 1, else: time_difference
-
-      # Calculate the new target in terms of bits
-      # NOTE: Modifier may be 0, if the blocks are mined really quickly and
-      # time_difference is 0
       modifier =
-        time_difference /
-          (retarget_difficulty_after_blocks * expected_time_to_solve_one_block_in_secs)
+        if trunc(time_difference) == 0 do
+          # Keep the same difficulty if the time_difference is not even
+          # registered in nanoseconds
+          1
+        else
+          # nanoseconds to seconds
+          time_difference = time_difference / :math.pow(10, 9)
+
+          time_difference /
+            (retarget_difficulty_after_blocks * expected_time_to_solve_one_block_in_secs)
+        end
 
       target = calculate_target(last_block)
 
@@ -246,6 +251,9 @@ defmodule Bitcoin.Structures.Block do
   end
 
   # Check for validity of height of the block
+  # Return a tuple to indicate whether the block is genesis_block
+  # Tuple is of the form -> 
+  # {validity, genesis_block_condition}
   defp valid_height?(block, confirmed_chain) do
     new_block_height = get_attr(block, :height)
 
@@ -262,7 +270,9 @@ defmodule Bitcoin.Structures.Block do
   end
 
   # Check for validity of the nonce of the block
-  defp valid_nonce?(block, confirmed_chain, is_genesis_block) do
+  # Determines whether the difficulty has been solved for
+  # Whether the puzzle is solved in order to provide proof of work
+  defp valid_proof_of_work?(block, confirmed_chain, is_genesis_block) do
     expected_target =
       if !is_genesis_block do
         top_block = Bitcoin.Structures.Chain.top(confirmed_chain)

@@ -32,13 +32,13 @@ defmodule Bitcoin.Node do
     GenServer.call(node, {:new_block_found, new_block})
   end
 
-  # @doc """
-  # Bitcoin.Node.start_mining
-  # """
-  # def start_mining(node) do
-  # GenServer.cast(node, {:start_mining})
-  # end
-  #
+  @doc """
+  Bitcoin.Node.start_mining
+  """
+  def start_mining(node) do
+    GenServer.cast(node, {:start_mining})
+  end
+
   # @doc """
   # Bitcoin.Node.create_transaction
   # """
@@ -83,7 +83,8 @@ defmodule Bitcoin.Node do
         node: self()
       )
 
-    {:ok, chord_api} = Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed, number_of_bits: 8)
+    {:ok, chord_api} =
+      Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed, number_of_bits: 8)
 
     {:ok,
      [ip_addr: ip_addr, blockchain: blockchain, chord_api: chord_api, mining: nil, wallet: wallet]}
@@ -101,16 +102,35 @@ defmodule Bitcoin.Node do
     {:noreply, state}
   end
 
+
+  @doc """
+  """
+  @impl true
+  def handle_cast({:start_mining}, state) do
+    # Kill previous mining process
+    if !is_nil(state[:mining]) do
+      Process.exit(state[:mining], :kill)
+    end
+
+    # Start a new mining process
+    chain = Bitcoin.Blockchain.get_chain(state[:blockchain])
+    # transaction_pool = Bitcoin.Transactions.get_transaction_pool()
+    transaction_pool = []
+    candidate_block = Bitcoin.Structures.Block.create_candidate_block(transaction_pool, chain)
+    pid = Task.start(Bitcoin.Mining, :mine_async, [candidate_block, self()])
+    state = Keyword.put(state, :mining, pid)
+    {:noreply, state}
+  end
+
+  @doc """
+  Callback to handle when a new block is found
+  """
   @impl true
   def handle_call({:new_block_found, new_block}, from, state) do
     GenServer.reply(from, {:reply, new_block, state})
     Chord.broadcast(state[:chord_api], :new_block_found, new_block)
     {:noreply, state}
   end
-
-  #@impl true
-  #def handle_cast({:start_mining}, state) do
-  #end
 
   #
   # @impl true
