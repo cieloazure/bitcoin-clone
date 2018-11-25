@@ -149,7 +149,6 @@ defmodule Chord do
   """
   @impl true
   def handle_cast({:broadcast, message, payload}, {node, _} = state) do
-    IO.puts("initiating broadcast from api....")
     Chord.Node.initiate_broadcast(node, message, payload)
     {:noreply, state}
   end

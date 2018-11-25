@@ -1,3 +1,5 @@
+require IEx
+
 defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.MerkleTree
@@ -7,6 +9,7 @@ defmodule Bitcoin.Structures.Block do
   @coin 100_000_000
   @halving_interval 210_000
   @proof_of_work_limit "1A0FFFFF"
+  @min_proof_of_work  "1EFFFFFF"
 
   # Constants required to retarget a difficulty
   # In this case, the difficulty will be retargeted after
@@ -14,8 +17,8 @@ defmodule Bitcoin.Structures.Block do
   # It is also assumed that will take 60secs to generate a block
   # If the time required to produce one block is greater then the 
   # difficulty should increase else it should decrease
-  @retarget_difficulty_after_blocks 1
-  @expected_time_to_solve_one_block_in_secs 60
+  @retarget_difficulty_after_blocks 10
+  @expected_time_to_solve_one_block_in_secs 1
 
   @doc """
   Create the candidate genesis block for the blockchain
@@ -137,7 +140,7 @@ defmodule Bitcoin.Structures.Block do
   """
   def calculate_target(block) do
     bits = get_header_attr(block, :bits)
-    IO.inspect("Calculate target #{inspect(bits)}")
+    #IO.inspect("Calculate target: #{bits}")
     calculate_target_from_bits(bits)
   end
 
@@ -220,12 +223,13 @@ defmodule Bitcoin.Structures.Block do
          retarget_difficulty_after_blocks,
          expected_time_to_solve_one_block_in_secs
        ) do
-    last_target = get_header_attr(last_block, :bits)
 
-    if length(blockchain) > retarget_difficulty_after_blocks do
+    last_target = get_header_attr(last_block, :bits)
+    height = get_attr(last_block, :height)
+
+    if height != 0 and rem(height, retarget_difficulty_after_blocks) == 0 do
       first_block =
         Bitcoin.Structures.Chain.sort(blockchain, :height)
-        |> Enum.reverse()
         |> Enum.at(-retarget_difficulty_after_blocks)
 
       # calculate time difference
@@ -239,7 +243,11 @@ defmodule Bitcoin.Structures.Block do
       # convert to secs
       time_difference = div(time_difference, trunc(:math.pow(10, 9)))
 
-      modifier = get_modifier(time_difference, expected_time_to_solve_one_block_in_secs)
+      IO.puts("height: #{height}")
+      IO.puts("last 10th block height: #{inspect(get_attr(first_block, :height))}")
+      IO.puts("actual time diff: #{time_difference}")
+      modifier = get_modifier(time_difference, expected_time_to_solve_one_block_in_secs * retarget_difficulty_after_blocks)
+      IO.puts("modifier: #{inspect(modifier)}")
       # Checking time difference
       # Because, a time_difference of 0 will make the new_target 0
       # And log of 0 will produce an error
@@ -251,10 +259,18 @@ defmodule Bitcoin.Structures.Block do
       # Reaches proof of work limit
       new_target =
         if new_target > calculate_target_from_bits(@proof_of_work_limit) do
-          calculate_target_from_bits(@proof_of_work_limit)
+          calculate_target_from_bits(@proof_of_work_limit) |> binary_to_decimal
         else
           new_target
         end
+
+      new_target_bin = decimal_to_binary(new_target)
+
+      new_target = if byte_size(new_target_bin) >= 32 do
+        calculate_target_from_bits(@min_proof_of_work) |> binary_to_decimal
+      else
+        new_target
+      end
 
       # Calculate the new bits string 
       calculate_bits_from_target(new_target)

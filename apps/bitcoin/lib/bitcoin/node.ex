@@ -94,7 +94,8 @@ defmodule Bitcoin.Node do
   def handle_cast({:start_mining, given_chain}, state) do
     # Kill previous mining process
     if !is_nil(state[:mining]) do
-      Process.exit(state[:mining], :kill)
+      status = Task.shutdown(state[:mining])
+      #IO.inspect(status)
     end
 
     # Start a new mining process
@@ -109,8 +110,8 @@ defmodule Bitcoin.Node do
         state[:wallet][:bitcoin_address]
       )
 
-    {:ok, pid} = Task.start(Bitcoin.Mining, :mine_async, [candidate_block, self()])
-    state = Keyword.put(state, :mining, pid)
+    task = Task.async(Bitcoin.Mining, :mine_async, [candidate_block, self()])
+    state = Keyword.put(state, :mining, task)
     # Bitcoin.Mining.mine_async(candidate_block, self())
     {:noreply, state}
   end
@@ -132,6 +133,11 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_info({:blockchain_handler, message, payload}, state) do
     send(state[:blockchain], {:handle_message, message, payload})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(_, state) do
     {:noreply, state}
   end
 end

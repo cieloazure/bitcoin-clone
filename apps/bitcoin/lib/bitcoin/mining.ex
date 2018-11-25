@@ -7,7 +7,6 @@ defmodule Bitcoin.Mining do
 
   def mine_async(candidate_block, bitcoin_node) do
     mined_block = initiate_mining(candidate_block)
-    IO.inspect("here at node #{inspect(bitcoin_node)} for mining")
     Bitcoin.Node.new_block_found(bitcoin_node, mined_block)
   end
 
@@ -18,7 +17,7 @@ defmodule Bitcoin.Mining do
   """
   def initiate_mining(candidate_block) do
     target = Bitcoin.Structures.Block.calculate_target(candidate_block)
-    IO.inspect("Starting to mine....to reach target #{inspect(target)}")
+    #IO.inspect("Starting to mine....to reach target #{inspect(target)}")
     mine_block(candidate_block, target)
   end
 
@@ -42,10 +41,10 @@ defmodule Bitcoin.Mining do
     v2 = binary_to_decimal(target)
 
     if zeros_obtained_header == zeros_obtained_target and v1 <= v2 do
-      IO.inspect("Done with mining....")
-      IO.inspect(hashed_value)
-      IO.inspect(target)
-      IO.inspect(nonce)
+      #IO.inspect("Done with mining....")
+      #IO.inspect(hashed_value)
+      #IO.inspect(target)
+      #IO.inspect(nonce)
       candidate_block
     else
       increment_nonce(candidate_block)
