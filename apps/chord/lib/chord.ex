@@ -172,7 +172,7 @@ defmodule Chord do
   """
   @impl true
   def terminate(_reason, {node, _}) do
-    #IO.inspect("Terminating api #{inspect(reason)}")
+    # IO.inspect("Terminating api #{inspect(reason)}")
     Process.exit(node, :normal)
   end
 end
