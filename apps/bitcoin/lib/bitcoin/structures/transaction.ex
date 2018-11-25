@@ -105,4 +105,56 @@ defmodule Bitcoin.Structures.Transaction do
 
     tx_inputs
   end
+
+  def valid?(list) when is_list(list) do
+    try do
+      Enum.reduce(list, 0, fn element, acc ->
+        if element[:amount] > 0 and element[:amount] < 21 * 1000_000 * 100_000_000 do
+          sum = acc + element[:amount]
+
+          if sum < 21 * 1000_000 * 100_000_000,
+            do: sum,
+            else: throw(:break)
+        else
+          throw(:break)
+        end
+      end)
+
+      true
+    catch
+      :break -> false
+    end
+  end
+
+  def unspent_output?(tx_output, sub_chain) do
+    txo_hash = Map.get(tx_output, :tx_hash)
+    txo_index = Map.get(tx_output, :output_index)
+
+    try do
+      Enum.each(sub_chain, fn blk ->
+        tx_inputs = Map.get(blk, :txns) |> Map.get(:inputs)
+
+        for txi <- tx_inputs do
+          txi_hash = Map.get(txi, :tx_hash)
+          txi_index = Map.get(txi, :output_index)
+
+          if txi_hash == txo_hash and txi_index == txo_index,
+            do: throw(:break)
+        end
+      end)
+    catch
+      :break -> false
+    end
+
+    true
+  end
+
+  # def sum(inputs, outputs) do
+  #   {sum_inputs, sum_outputs} =
+  #     Enum.zip(inputs, outputs)
+  #     |> Enum.reduce({0, 0}, fn {input, output}, acc ->
+  #       {sum_inputs, sum_outputs} = acc
+  #       {sum_inputs + input, sum_outputs + output}
+  #     end)
+  # end
 end

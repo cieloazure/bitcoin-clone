@@ -5,6 +5,8 @@ defmodule Bitcoin.Node do
   A Bitcoin full node
   """
   use GenServer
+  alias Bitcoin.Structures.{Transaction, Block, Chain}
+  alias Bitcoin.Utilities.ScriptUtil
 
   ###             ###
   ###             ###
@@ -85,7 +87,8 @@ defmodule Bitcoin.Node do
        chord_api: chord_api,
        mining: nil,
        wallet: wallet,
-       tx_pool: []
+       tx_pool: [],
+       orphan_pool: []
      ]}
   end
 
@@ -157,9 +160,9 @@ defmodule Bitcoin.Node do
 
     # BROADCAST 
     # add transaction to this node's transaction pool
-    state = Keyword.put(state, :tx_pool, List.add(state[:tx_pool], transaction))
+    state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
     # Broadcast this transaction to other nodes
-    Chord.send_peers(state[:chord_api], :new_transaction, transaction)
+    Chord.broadcast(state[:chord_api], :new_transaction, transaction)
 
     {:noreply, state}
   end
@@ -186,8 +189,106 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
-    state = Keyword.put(state, :tx_pool, List.add(state[:tx_pool], transaction))
+    state =
+      if verify_transaction(transaction, state),
+        do: Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool]),
+        else: state
 
-    {:node, state}
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:orphan_transaction, transaction}, state) do
+    state = Keyword.put(state, :orphan_pool, [transaction] ++ state[:tx_pool])
+    {:noreply, state}
+  end
+
+  ## PRIVATE METHODS ##
+
+  defp verify_transaction(transaction, state) do
+    inputs = Map.get(transaction, :inputs)
+    outputs = Map.get(transaction, :outputs)
+
+    try do
+      # 1. verify structure
+      # TODO:
+
+      # 2. verify neither inputs nor outputs are empty
+      if Enum.empty?(inputs) or Enum.empty?(outputs),
+        do: throw(:break)
+
+      # 3. verify each output (and input) value as well as total is: 0 <= value < 21m
+      if !(Transaction.valid?(inputs) and Transaction.valid?(outputs)),
+        do: throw(:break)
+
+      # 4. verify standard form of locking and unlocking scripts
+      # TODO:
+
+      # 5. verify for each input, referenced output exists.
+      # If not, put in orphan pool if matching transaction doesn't already exist.
+      # 6. verify for each input, referenced output is unspent
+      # 7. verify unlocking script validates against locking scripts.
+      if !Enum.all?(inputs, fn input ->
+           verify_input(input, transaction, Bitcoin.Blockchain.get_chain(state[:blockchain]))
+         end),
+         do: throw(:break)
+
+      # 8. reject if sum(outputs) > sum(inputs)
+      sum_inputs = Enum.reduce(inputs, fn input, acc -> Map.get(input, :amount) + acc end)
+      sum_outputs = Enum.reduce(outputs, fn output, acc -> Map.get(output, :amount) + acc end)
+
+      if sum_outputs > sum_inputs, do: throw(:break)
+
+      # 9. reject if transaction fee is too low to get into empty block
+      # TODO:
+    catch
+      :break -> false
+    end
+  end
+
+  # TODO: remove transaction as a parameter.
+  defp verify_input(input, transaction, chain) do
+    try do
+      Enum.each(chain, fn block ->
+        output =
+          Map.get(block, :txns)
+          |> Enum.flat_map(fn tx -> Map.get(tx, :outputs) end)
+          |> Enum.find(fn txo ->
+            Map.get(txo, :tx_hash) == Map.get(input, :tx_hash) and
+              Map.get(txo, :output_index) == Map.get(input, :output_index)
+          end)
+
+        if !is_nil(output) do
+          # 7. verify unlocking script validates against locking scripts.
+          script =
+            ScriptUtil.join(Map.get(input, :unlocking_script), Map.get(output, :locking_script))
+
+          if !ScriptUtil.valid?(script),
+            do: throw({:break, false})
+
+          # 6. verify for each input, referenced output is unspent
+          sub_chain =
+            Chain.get_blocks(chain, fn b ->
+              Block.get_attr(b, :height) > Block.get_attr(block, :height)
+            end)
+
+          if !Transaction.unspent_output?(output, sub_chain),
+            do: throw({:break, false})
+
+          throw({:break, true})
+        end
+
+        # end)
+      end)
+
+      # 5. verify for each input, referenced output exists.
+      # referenced transaction output not found
+      # add to orphan pool
+      send(self(), {:orphan_transaction, transaction})
+      false
+    catch
+      {:break, result} ->
+        result
+    end
   end
 end

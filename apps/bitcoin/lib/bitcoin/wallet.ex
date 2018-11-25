@@ -2,7 +2,7 @@ defmodule Bitcoin.Wallet do
   @moduledoc """
   A module for managing a wallet
   """
-  alias Bitcoin.Structures.{Block, Chain}
+  alias Bitcoin.Structures.{Block, Chain, Transaction}
   alias Bitcoin.Utilities.{Keys, ScriptUtil}
 
   @doc """
@@ -40,26 +40,7 @@ defmodule Bitcoin.Wallet do
 
       # Collect unspent transaction_outputs from the above set
       Enum.filter(user_txos, fn txo ->
-        txo_hash = Map.get(txo, :tx_hash)
-        txo_index = Map.get(txo, :output_index)
-
-        try do
-          Enum.each(sub_chain, fn blk ->
-            tx_inputs = Map.get(blk, :txns) |> Map.get(:inputs)
-
-            for txi <- tx_inputs do
-              txi_hash = Map.get(txi, :tx_hash)
-              txi_index = Map.get(txi, :output_index)
-
-              if txi_hash == txo_hash and txi_index == txo_index,
-                do: throw(:break)
-            end
-          end)
-        catch
-          :break -> false
-        end
-
-        true
+        Transaction.unspent_output?(txo, sub_chain)
       end)
     end)
   end

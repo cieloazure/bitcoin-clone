@@ -16,6 +16,10 @@ defmodule Bitcoin.Utilities.ScriptUtil do
     "#{signature} / #{public_key}"
   end
 
+  def join(unlocking_script, locking_script) do
+    unlocking_script <> " / " <> locking_script
+  end
+
   @doc """
   Executes the script and validates if unlocking and locking scripts are valid.
   """

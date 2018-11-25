@@ -50,8 +50,8 @@ defmodule Chord.Defaults.Store do
     store =
       case message do
         :store ->
-            IO.puts("Got broadcast from #{inspect(node)}")
-            [payload | store]
+          IO.puts("Got broadcast from #{inspect(node)}")
+          [payload | store]
       end
 
     {:noreply, {node, store}}
