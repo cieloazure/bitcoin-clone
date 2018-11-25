@@ -1,6 +1,6 @@
 defmodule Bitcoin.Structures.Block do
   use Bitwise
-  alias Bitcoin.Utilities.MerkleTree
+  alias Bitcoin.Utilities.{MerkleTree, BloomFilter}
   import Bitcoin.Utilities.Crypto
   import Bitcoin.Utilities.Conversions
 
@@ -26,6 +26,8 @@ defmodule Bitcoin.Structures.Block do
     {:ok, gen_tx} = Bitcoin.Structures.Transaction.create_generation_transaction(0, 0, recipient)
     {merkle_root, merkle_tree} = MerkleTree.calculate_hash([gen_tx])
 
+    bloom_filter = BloomFilter.init(50, 0.2) |> BloomFilter.put(Map.get(gen_tx, :tx_id))
+
     previous_block_hash = <<0::256>>
     timestamp = DateTime.utc_now()
     nonce = 1
@@ -44,7 +46,8 @@ defmodule Bitcoin.Structures.Block do
       tx_counter: 1,
       txns: [gen_tx],
       height: 0,
-      merkle_tree: merkle_tree
+      merkle_tree: merkle_tree,
+      bloom_filter: bloom_filter
     }
   end
 
@@ -83,6 +86,9 @@ defmodule Bitcoin.Structures.Block do
     transaction_pool = [gen_tx | transaction_pool]
     {merkle_root, merkle_tree} = MerkleTree.calculate_hash(transaction_pool)
 
+    tx_ids = Enum.map(transaction_pool, fn tx -> Map.get(tx, :tx_id) end)
+    bloom_filter = BloomFilter.init(50, 0.2) |> BloomFilter.put(tx_ids)
+
     header = %Bitcoin.Schemas.BlockHeader{
       version: version,
       timestamp: timestamp,
@@ -99,7 +105,8 @@ defmodule Bitcoin.Structures.Block do
       txns: transaction_pool,
       tx_counter: transaction_counter,
       height: height,
-      merkle_tree: merkle_tree
+      merkle_tree: merkle_tree,
+      bloom_filter: bloom_filter
     }
   end
 
@@ -154,6 +161,26 @@ defmodule Bitcoin.Structures.Block do
       {false, _} ->
         false
     end
+  end
+
+  @doc """
+  Check whether block contains the transaction referenced by the given input
+  """
+  def contains?(block, input) when is_map(input) do
+    case not (Map.get(input, :tx_id) |> is_nil) do
+      true ->
+        BloomFilter.contains?(Map.get(block, :bloom_filter), Map.get(input, :tx_id))
+
+      _ ->
+        false
+    end
+  end
+
+  @doc """
+  Check whether block contains the transaction with given tx_id
+  """
+  def contains?(block, tx_id) do
+    BloomFilter.contains?(Map.get(block, :bloom_filter), tx_id)
   end
 
   ### PRIVATE FUNCTIONS ###

@@ -24,7 +24,7 @@ defmodule Bitcoin.Structures.Transaction do
     value = Bitcoin.Structures.Block.get_block_value(block_height, fees)
 
     v_out = %TransactionOutput{
-      tx_hash: tx_id,
+      tx_id: tx_id,
       output_index: 1,
       amount: value,
       locking_script: ScriptUtil.generate_locking_script(recipient)
@@ -54,7 +54,7 @@ defmodule Bitcoin.Structures.Transaction do
     tx_inputs =
       Enum.map(utxo, fn t ->
         %TransactionInput{
-          tx_hash: Map.get(t, :tx_hash),
+          tx_id: Map.get(t, :tx_id),
           output_index: Map.get(t, :output_index),
           unlocking_script:
             ScriptUtil.generate_unlocking_script(wallet[:private_key], wallet[:public_key])
@@ -62,7 +62,7 @@ defmodule Bitcoin.Structures.Transaction do
       end)
 
     tx_out = %TransactionOutput{
-      tx_hash: tx_id,
+      tx_id: tx_id,
       output_index: 1,
       amount: amount,
       locking_script: ScriptUtil.generate_locking_script(recipient)
@@ -71,7 +71,7 @@ defmodule Bitcoin.Structures.Transaction do
     change = Enum.reduce(utxo, 0, fn t, acc -> Map.get(t, :amount) + acc end) - amount - fees
 
     tx_change = %TransactionOutput{
-      tx_hash: tx_id,
+      tx_id: tx_id,
       output_index: 2,
       amount: change,
       locking_script: ScriptUtil.generate_locking_script(wallet[:address])
@@ -127,7 +127,7 @@ defmodule Bitcoin.Structures.Transaction do
   end
 
   def unspent_output?(tx_output, sub_chain) do
-    txo_hash = Map.get(tx_output, :tx_hash)
+    txo_hash = Map.get(tx_output, :tx_id)
     txo_index = Map.get(tx_output, :output_index)
 
     try do
@@ -135,7 +135,7 @@ defmodule Bitcoin.Structures.Transaction do
         tx_inputs = Map.get(blk, :txns) |> Map.get(:inputs)
 
         for txi <- tx_inputs do
-          txi_hash = Map.get(txi, :tx_hash)
+          txi_hash = Map.get(txi, :tx_id)
           txi_index = Map.get(txi, :output_index)
 
           if txi_hash == txo_hash and txi_index == txo_index,

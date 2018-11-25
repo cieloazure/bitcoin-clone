@@ -250,35 +250,35 @@ defmodule Bitcoin.Node do
   defp verify_input(input, transaction, chain) do
     try do
       Enum.each(chain, fn block ->
-        output =
-          Map.get(block, :txns)
-          |> Enum.flat_map(fn tx -> Map.get(tx, :outputs) end)
-          |> Enum.find(fn txo ->
-            Map.get(txo, :tx_hash) == Map.get(input, :tx_hash) and
-              Map.get(txo, :output_index) == Map.get(input, :output_index)
-          end)
-
-        if !is_nil(output) do
-          # 7. verify unlocking script validates against locking scripts.
-          script =
-            ScriptUtil.join(Map.get(input, :unlocking_script), Map.get(output, :locking_script))
-
-          if !ScriptUtil.valid?(script),
-            do: throw({:break, false})
-
-          # 6. verify for each input, referenced output is unspent
-          sub_chain =
-            Chain.get_blocks(chain, fn b ->
-              Block.get_attr(b, :height) > Block.get_attr(block, :height)
+        if Block.contains?(block, input) do
+          output =
+            Map.get(block, :txns)
+            |> Enum.flat_map(fn tx -> Map.get(tx, :outputs) end)
+            |> Enum.find(fn txo ->
+              Map.get(txo, :tx_id) == Map.get(input, :tx_id) and
+                Map.get(txo, :output_index) == Map.get(input, :output_index)
             end)
 
-          if !Transaction.unspent_output?(output, sub_chain),
-            do: throw({:break, false})
+          if !is_nil(output) do
+            # 7. verify unlocking script validates against locking scripts.
+            script =
+              ScriptUtil.join(Map.get(input, :unlocking_script), Map.get(output, :locking_script))
 
-          throw({:break, true})
+            if !ScriptUtil.valid?(script),
+              do: throw({:break, false})
+
+            # 6. verify for each input, referenced output is unspent
+            sub_chain =
+              Chain.get_blocks(chain, fn b ->
+                Block.get_attr(b, :height) > Block.get_attr(block, :height)
+              end)
+
+            if !Transaction.unspent_output?(output, sub_chain),
+              do: throw({:break, false})
+
+            throw({:break, true})
+          end
         end
-
-        # end)
       end)
 
       # 5. verify for each input, referenced output exists.
