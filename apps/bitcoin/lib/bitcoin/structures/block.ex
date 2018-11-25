@@ -6,6 +6,7 @@ defmodule Bitcoin.Structures.Block do
 
   @coin 100_000_000
   @halving_interval 210_000
+  @proof_of_work_limit "1A0FFFFF"
 
   # Constants required to retarget a difficulty
   # In this case, the difficulty will be retargeted after
@@ -136,6 +137,7 @@ defmodule Bitcoin.Structures.Block do
   """
   def calculate_target(block) do
     bits = get_header_attr(block, :bits)
+    IO.inspect("Calculate target #{inspect(bits)}")
     calculate_target_from_bits(bits)
   end
 
@@ -162,7 +164,7 @@ defmodule Bitcoin.Structures.Block do
   # For example, 
   # calculate_target_from_bits("1fffffff") will give <<0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   # 0, 0, 0, 0, 0, 0, 0, 0>>
-  defp calculate_target_from_bits(bits) when is_bitstring(bits) do
+  def calculate_target_from_bits(bits) when is_bitstring(bits) do
     {exponent, coeffiecient} = String.split_at(bits, 2)
 
     exponent = hex_to_decimal(exponent)
@@ -182,19 +184,27 @@ defmodule Bitcoin.Structures.Block do
   # 0, 0, 0, 0, 0, 0, 0, 0>>)) will give "1FFFFFFF"
   def calculate_bits_from_target(new_target) when is_number(new_target) do
     new_target_bin = decimal_to_binary(new_target)
-    new_target_bin = new_target_bin |> String.pad_leading(32, <<0>>)
+    <<first_byte::bytes-size(1), _::bits>> = new_target_bin
 
-    # Separate new target into coeffiecient and exponent
-    new_target_coeffiecient_bin = String.trim(new_target_bin, <<0>>)
-    new_target_coeffiecient_hex = binary_to_hex(new_target_coeffiecient_bin)
+    new_target_bin =
+      if first_byte > <<0x7F>> do
+        <<0x00>> <> new_target_bin
+      else
+        new_target_bin
+      end
 
-    b = :math.log2(new_target) - :math.log2(binary_to_decimal(new_target_coeffiecient_bin))
+    size = byte_size(new_target_bin) |> decimal_to_binary
 
-    new_target_exponent = b / 8 + 3
-    new_target_exponent_bin = decimal_to_binary(new_target_exponent)
-    new_target_exponent_hex = binary_to_hex(new_target_exponent_bin)
+    new_target_bin =
+      if byte_size(new_target_bin) < 3 do
+        String.pad_trailing(new_target_bin, 3, <<0x00>>)
+      else
+        new_target_bin
+      end
 
-    new_target_exponent_hex <> new_target_coeffiecient_hex
+    <<precision_bytes::bytes-size(3), _::bits>> = new_target_bin
+
+    binary_to_hex(size <> precision_bytes)
   end
 
   # get_next_target
@@ -226,32 +236,47 @@ defmodule Bitcoin.Structures.Block do
           :nanoseconds
         )
 
+      # convert to secs
+      time_difference = div(time_difference, trunc(:math.pow(10, 9)))
+
+      modifier = get_modifier(time_difference, expected_time_to_solve_one_block_in_secs)
       # Checking time difference
       # Because, a time_difference of 0 will make the new_target 0
       # And log of 0 will produce an error
-      modifier =
-        if trunc(time_difference) == 0 do
-          # Keep the same difficulty if the time_difference is not even
-          # registered in nanoseconds
-          1
-        else
-          # nanoseconds to seconds
-          time_difference = time_difference / :math.pow(10, 9)
-
-          time_difference /
-            (retarget_difficulty_after_blocks * expected_time_to_solve_one_block_in_secs)
-        end
-
       target = calculate_target(last_block)
 
       # Calculate new target
       new_target = binary_to_decimal(target) * modifier
+
+      # Reaches proof of work limit
+      new_target =
+        if new_target > calculate_target_from_bits(@proof_of_work_limit) do
+          calculate_target_from_bits(@proof_of_work_limit)
+        else
+          new_target
+        end
 
       # Calculate the new bits string 
       calculate_bits_from_target(new_target)
     else
       last_target
     end
+  end
+
+  defp get_modifier(actual_timespan, target_timespan) do
+    actual_timespan =
+      cond do
+        actual_timespan < div(target_timespan, 4) ->
+          div(target_timespan, 4)
+
+        actual_timespan > target_timespan * 4 ->
+          target_timespan * 4
+
+        true ->
+          actual_timespan
+      end
+
+    actual_timespan / target_timespan
   end
 
   # Check for validity of height of the block

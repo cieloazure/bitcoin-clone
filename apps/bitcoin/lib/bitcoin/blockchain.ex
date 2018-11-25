@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Blockchain do
   @moduledoc """
   Bitcoin.Blockchain
@@ -96,7 +94,6 @@ defmodule Bitcoin.Blockchain do
           {new_chain, new_forks, new_orphans} =
             new_block_found(payload, node, {chain, forks, orphans})
 
-          IEx.pry()
           Bitcoin.Node.start_mining(node, new_chain)
           {new_chain, new_forks, new_orphans}
 
@@ -144,29 +141,32 @@ defmodule Bitcoin.Blockchain do
   defp new_block_found(payload, node, {chain, forks, orphans}) do
     IO.puts("here  at the store of #{inspect(:sys.get_state(node)[:ip_addr])}")
     new_block = payload
-    {location, condition} = find_block(new_block, {chain, forks})
-    IEx.pry()
+    if Block.valid?(new_block, chain) do
+      {location, condition} = find_block(new_block, {chain, forks})
 
-    case {location, condition} do
-      {:in_chain, :at_top} ->
-        new_chain = [new_block | chain]
-        {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
-        {new_chain, forks, orphans}
+      case {location, condition} do
+        {:in_chain, :at_top} ->
+          new_chain = [new_block | chain]
+          {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
+          {new_chain, forks, orphans}
 
-      {:in_chain, :with_fork} ->
-        {chain, forks} = Chain.fork(chain, new_block)
-        {forks, orphans} = consolidate_orphans_in_forks(forks, orphans)
-        {chain, forks, orphans}
+        {:in_chain, :with_fork} ->
+          {chain, forks} = Chain.fork(chain, new_block)
+          {forks, orphans} = consolidate_orphans_in_forks(forks, orphans)
+          {chain, forks, orphans}
 
-      {:in_fork, fork_index} ->
-        fork = Enum.at(forks, fork_index)
-        extended_fork = [new_block | fork]
-        new_chain = extended_fork
-        {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
-        {new_chain, [], orphans}
+        {:in_fork, fork_index} ->
+          fork = Enum.at(forks, fork_index)
+          extended_fork = [new_block | fork]
+          new_chain = extended_fork
+          {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
+          {new_chain, [], orphans}
 
-      {:in_orphan} ->
-        {chain, forks, [new_block | orphans]}
+        {:in_orphan, _} ->
+          {chain, forks, [new_block | orphans]}
+      end
+    else
+      {chain, forks, orphans}
     end
   end
 
@@ -201,7 +201,7 @@ defmodule Bitcoin.Blockchain do
       if !is_nil(fork_index) do
         {:in_fork, fork_index}
       else
-        {:in_orphan}
+        {:in_orphan, nil}
       end
     end
   end
