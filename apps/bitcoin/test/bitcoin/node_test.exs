@@ -71,6 +71,14 @@ defmodule Bitcoin.NodeTest do
 
     IO.inspect(node1)
 
+    {:ok, node2} =
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.2",
+        seed: seed,
+        genesis_block: mined_genesis_block,
+        identifier: 2
+      )
+
     Bitcoin.Node.start_mining(node1)
 
     # Process.sleep(1000)

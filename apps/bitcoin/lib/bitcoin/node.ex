@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Node do
   @moduledoc """
   A Bitcoin full node
