@@ -1,4 +1,5 @@
-require IEx;
+require IEx
+
 defmodule Chord.Node do
   @moduledoc """
   Chord.Node
@@ -10,7 +11,7 @@ defmodule Chord.Node do
   alias Helpers.CircularInterval
 
   @default_number_of_bits 24
-  #TODO: CHange
+  # TODO: CHange
   @default_size_succ_list 8
 
   ###             ###
@@ -19,9 +20,8 @@ defmodule Chord.Node do
   ###             ###
   ###             ###
 
-
   ##### SECTION 1: CORE PROTOCOL #####
-  
+
   @doc """
   Chord.Node.start_link
 
@@ -117,9 +117,8 @@ defmodule Chord.Node do
     GenServer.cast(node, {:transfer_keys, predeccessor_identifier, predeccessor_pid})
   end
 
-
   ##### SECTION 3: FAILURE HANDLING ######
-  
+
   @doc """
   Chord.Node.get_succ_list
 
@@ -183,9 +182,8 @@ defmodule Chord.Node do
     GenServer.cast(node, {:failed_successor})
   end
 
-
   ###### SECTION 4: BROADCAST AND IMMEDIATE PEER COMMUNICATION ######
-  
+
   @doc """
   Chord.Node.initiate_broadcast
   """
@@ -331,7 +329,6 @@ defmodule Chord.Node do
   end
 
   ##### ASYNCRONOUS METHODS: handle_casts #####
-  
 
   @doc """
   Chord.Node.handle_cast for `:join`
@@ -563,11 +560,12 @@ defmodule Chord.Node do
 
     Enum.uniq_by(state[:finger_table], fn {_k, finger} -> finger[:identifier] end)
     |> Enum.chunk_every(2, 1, [nil])
-    |> Enum.each(fn [finger, next_finger] -> 
+    |> Enum.each(fn [finger, next_finger] ->
       {_, finger} = finger
       # Check for last finger
       if !is_nil(next_finger) do
-        {_, next_finger}  = next_finger
+        {_, next_finger} = next_finger
+
         if finger[:pid] != self() and finger[:pid] != nil do
           Chord.Node.receive_broadcast(finger[:pid], next_finger[:identifier], message, payload)
         end
@@ -583,33 +581,42 @@ defmodule Chord.Node do
 
   @impl true
   def handle_cast({:receive_broadcast, limit, message, payload}, state) do
-    IO.inspect("At receive broadcast of the node #{inspect(state[:ip_addr])}, delegating message to store")
+    IO.inspect(
+      "At receive broadcast of the node #{inspect(state[:ip_addr])}, delegating message to store"
+    )
+
     # Delegate broadcast to common store
     send(state[:store], {:handle_message, message, payload})
 
     Enum.uniq_by(state[:finger_table], fn {_k, finger} -> finger[:identifier] end)
     |> Enum.chunk_every(2, 1, [nil])
-    |> Enum.each(fn [finger, next_finger] -> 
+    |> Enum.each(fn [finger, next_finger] ->
       {_, finger} = finger
 
       # Check whether it lies within interval
       if CircularInterval.open_interval_check(finger[:identifier], state[:identifier], limit) do
         # Check for last finger
         if !is_nil(next_finger) do
-          {_, next_finger}  = next_finger
-          new_limit = if CircularInterval.open_interval_check(next_finger[:identifier], state[:identifier], limit) do
-            next_finger[:identifier]
-          else
-            limit
-          end
+          {_, next_finger} = next_finger
+
+          new_limit =
+            if CircularInterval.open_interval_check(
+                 next_finger[:identifier],
+                 state[:identifier],
+                 limit
+               ) do
+              next_finger[:identifier]
+            else
+              limit
+            end
 
           Chord.Node.receive_broadcast(finger[:pid], new_limit, message, payload)
         else
           Chord.Node.receive_broadcast(finger[:pid], state[:identifier], message, payload)
         end
       end
-
     end)
+
     {:noreply, state}
   end
 
@@ -630,9 +637,7 @@ defmodule Chord.Node do
     {:noreply, state}
   end
 
-
   ####### SYNCHRONOUS METHODS: handle_calls ###########
-
 
   @doc """
   Chord.Node.handle_call for `:get_predeccessor`
