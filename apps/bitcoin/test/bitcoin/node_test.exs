@@ -53,23 +53,30 @@ defmodule Bitcoin.NodeTest do
   end
 
   test "broadcast" do
-    alias Bitcoin.Structures.Block
-    {:ok, seed} = SeedServer.start_link([])
+    #alias Bitcoin.Structures.Block
+    #{:ok, seed} = SeedServer.start_link([])
 
-    candidate_genesis_block =
-      Bitcoin.Structures.Block.create_candidate_genesis_block("1effffff", "1akashbharatshingte")
+    #candidate_genesis_block =
+      #Bitcoin.Structures.Block.create_candidate_genesis_block("1EFFFFFF", "1akashbharatshingte")
 
-    mined_genesis_block = Bitcoin.Mining.initiate_mining(candidate_genesis_block)
+    #mined_genesis_block = Bitcoin.Mining.initiate_mining(candidate_genesis_block)
 
-    {:ok, node1} =
-      Bitcoin.Node.start_link(
-        ip_addr: "192.168.0.1",
-        seed: seed,
-        genesis_block: mined_genesis_block,
-        identifier: 1
-      )
+    #{:ok, node1} =
+      #Bitcoin.Node.start_link(
+        #ip_addr: "192.168.0.1",
+        #seed: seed,
+        #genesis_block: mined_genesis_block,
+        #identifier: 1
+      #)
 
-    Bitcoin.Node.start_mining(node1)
+    #{:ok, node2} =
+      #Bitcoin.Node.start_link(
+        #ip_addr: "192.168.0.2",
+        #seed: seed,
+        #genesis_block: mined_genesis_block,
+        #identifier: 2
+      #)
+    #Bitcoin.Node.start_mining(node1)
 
     # Process.sleep(1000)
 

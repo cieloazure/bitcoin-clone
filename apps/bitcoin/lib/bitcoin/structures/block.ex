@@ -264,13 +264,14 @@ defmodule Bitcoin.Structures.Block do
           new_target
         end
 
-      new_target_bin = decimal_to_binary(new_target)
+      #new_target_bin = decimal_to_binary(new_target)
 
-      new_target = if byte_size(new_target_bin) >= 32 do
-        calculate_target_from_bits(@min_proof_of_work) |> binary_to_decimal
-      else
-        new_target
-      end
+      #new_target = if byte_size(new_target_bin) >= 32 do
+        #IEx.pry
+        #calculate_target_from_bits(@min_proof_of_work) |> binary_to_decimal
+      #else
+        #new_target
+      #end
 
       # Calculate the new bits string 
       calculate_bits_from_target(new_target)
