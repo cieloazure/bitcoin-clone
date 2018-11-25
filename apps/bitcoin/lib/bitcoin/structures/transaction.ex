@@ -90,6 +90,9 @@ defmodule Bitcoin.Structures.Transaction do
     {:ok, transaction}
   end
 
+  @doc """
+  Get the inputs required to transfer the given amount from user's unspent transaction outputs.
+  """
   def get_required_inputs(utxo, amount) do
     [sum: _sum, list: tx_inputs] =
       Enum.reduce_while(utxo, [sum: 0, list: []], fn txo, acc ->
@@ -106,18 +109,22 @@ defmodule Bitcoin.Structures.Transaction do
     tx_inputs
   end
 
-  def valid?(list) when is_list(list) do
+  @doc """
+  Check whether the total amount in the given list < 21 million satoshis
+  """
+  def valid_total?(list) when is_list(list) do
     try do
       Enum.reduce(list, 0, fn element, acc ->
-        if element[:amount] > 0 and element[:amount] < 21 * 1000_000 * 100_000_000 do
-          sum = acc + element[:amount]
+        # if element[:amount] > 0 and element[:amount] < 21 * 1000_000 * 100_000_000 do
+        acc = acc + element[:amount]
 
-          if sum < 21 * 1000_000 * 100_000_000,
-            do: sum,
-            else: throw(:break)
-        else
-          throw(:break)
-        end
+        if acc < 21 * 1000_000 * 100_000_000,
+          do: acc,
+          else: throw(:break)
+
+        # else
+        #   throw(:break)
+        # end
       end)
 
       true
@@ -126,6 +133,9 @@ defmodule Bitcoin.Structures.Transaction do
     end
   end
 
+  @doc """
+  Check whether the given transaction output is unspent
+  """
   def unspent_output?(tx_output, sub_chain) do
     txo_hash = Map.get(tx_output, :tx_id)
     txo_index = Map.get(tx_output, :output_index)
@@ -148,13 +158,4 @@ defmodule Bitcoin.Structures.Transaction do
 
     true
   end
-
-  # def sum(inputs, outputs) do
-  #   {sum_inputs, sum_outputs} =
-  #     Enum.zip(inputs, outputs)
-  #     |> Enum.reduce({0, 0}, fn {input, output}, acc ->
-  #       {sum_inputs, sum_outputs} = acc
-  #       {sum_inputs + input, sum_outputs + output}
-  #     end)
-  # end
 end

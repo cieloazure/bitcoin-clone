@@ -205,20 +205,22 @@ defmodule Bitcoin.Node do
 
   ## PRIVATE METHODS ##
 
+  # Validate the transaction
   defp verify_transaction(transaction, state) do
     inputs = Map.get(transaction, :inputs)
     outputs = Map.get(transaction, :outputs)
 
     try do
       # 1. verify structure
-      # TODO:
+      if !Bitcoin.Schemas.Transaction.valid?(transaction),
+        do: throw(:break)
 
       # 2. verify neither inputs nor outputs are empty
       if Enum.empty?(inputs) or Enum.empty?(outputs),
         do: throw(:break)
 
-      # 3. verify each output (and input) value as well as total is: 0 <= value < 21m
-      if !(Transaction.valid?(inputs) and Transaction.valid?(outputs)),
+      # 3. verify inputs and outputs' totals are: 0 <= total < 21m
+      if !(Transaction.valid_total?(inputs) and Transaction.valid_total?(outputs)),
         do: throw(:break)
 
       # 4. verify standard form of locking and unlocking scripts
