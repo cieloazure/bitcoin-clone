@@ -139,7 +139,6 @@ defmodule Bitcoin.Blockchain do
   end
 
   defp new_block_found(payload, node, {chain, forks, orphans}) do
-    IO.puts("At new block found...")
     new_block = payload
     if Block.valid?(new_block, chain) do
       {location, condition} = find_block(new_block, {chain, forks})
