@@ -4,12 +4,12 @@
 
 The goal of this project was to learn about internal workings of bitcoin and implement them in Elixir with the help of Erlang's crypto library. The requirements for the first part of the project were as follows - 
 > 1. Implement enough of the bitcoin protocol to be able to 
-* Mine bitcoins(For mining, make sure you set the threshold low so you can mine very fast (milliseconds to seconds))
-* Implement wallets (enough to get the other goals)
-* Transact bitcoins. 
+>* Mine bitcoins(For mining, make sure you set the threshold low so you can mine very fast (milliseconds to seconds))
+>* Implement wallets (enough to get the other goals)
+>* Transact bitcoins. 
 > 2. Write test cases verifying the correctness for each task. Specifically, you need to 
-* write unit test (for focused functionality such as correct computation of the hashes)
-* functional tests (simple scenarios in which a transaction happens between two participants).
+>* write unit test (for focused functionality such as correct computation of the hashes)
+>* functional tests (simple scenarios in which a transaction happens between two participants).
 > 3. **Bonus**: Implements more bitcoin "features" for part I (+20%)
 
 ### Functionalities Implemented
