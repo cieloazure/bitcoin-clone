@@ -273,9 +273,40 @@ defmodule Bitcoin.BlockchainTest do
     end
 
     test "the new block is the parent of one of the orphan block and is in the main chain" do
+      {:ok, seed} = SeedServer.start_link([])
+      genesis_block = Block.create_candidate_genesis_block()
+      genesis_block = Bitcoin.Mining.initiate_mining(genesis_block)
+
+      {:ok, node} =
+        Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
+
+      blockchain = :sys.get_state(node)[:blockchain]
+
+      chain = create_chain([], 5, nil, 0)
+      Bitcoin.Blockchain.set_chain(blockchain, chain)
+
+      block1 = Bitcoin.Structures.Block.create_candidate_block([], chain)
+      mined_block1 = Bitcoin.Mining.initiate_mining(block1)
+      send(blockchain, {:handle_message, :new_block_found, mined_block1})
+
+      new_chain = [mined_block1 | chain]
+      block2 = Bitcoin.Structures.Block.create_candidate_block([], new_chain)
+      mined_block2 = Bitcoin.Mining.initiate_mining(block2)
+
+      new_chain = [mined_block2 | chain]
+      block3 = Bitcoin.Structures.Block.create_candidate_block([], new_chain)
+      mined_block3 = Bitcoin.Mining.initiate_mining(block3)
+      send(blockchain, {:handle_message, :new_block_found, mined_block3})
+      {_, {chain_before, forks_before, orphan_before}} = :sys.get_state(blockchain)
+      assert length(orphan_before) != 0
+
+      send(blockchain, {:handle_message, :new_block_found, mined_block2})
+      {_, {chain_after, forks_after, orphan_after}} = :sys.get_state(blockchain)
+      assert length(orphan_after) == 0
     end
 
-    test "the new block is the parent of one of the orphan and is in one of the forks"
+    test "the new block is the parent of one of the orphan and is in one of the forks" do
+    end
   end
 
   defp create_chain(chain, length, _, index) when index >= length do

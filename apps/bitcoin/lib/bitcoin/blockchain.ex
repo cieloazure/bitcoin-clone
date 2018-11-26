@@ -163,7 +163,6 @@ defmodule Bitcoin.Blockchain do
     if Block.valid?(new_block, chain) do
       {location, condition} = find_block(new_block, {chain, forks})
 
-      # IEx.pry
       case {location, condition} do
         {:in_chain, :at_top} ->
           new_chain = [new_block | chain]
@@ -203,7 +202,6 @@ defmodule Bitcoin.Blockchain do
           {new_chain, forks, orphans}
 
         {:in_orphan, _} ->
-          IEx.pry()
           {chain, forks, [new_block | orphans]}
       end
     else
