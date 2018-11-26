@@ -9,7 +9,9 @@ defmodule Bitcoin.Schemas.Block do
             tx_counter: 0,
             txns: [],
             height: nil,
-            merkle_tree: nil
+            merkle_tree: nil,
+            bloom_filter: nil
+
 
   @doc """
   Check whether the block struct is valid
@@ -19,7 +21,7 @@ defmodule Bitcoin.Schemas.Block do
 
     MapSet.equal?(
       MapSet.new(keys),
-      MapSet.new([:block_header, :tx_counter, :txns, :height, :merkle_tree])
+      MapSet.new([:block_header, :tx_counter, :txns, :height, :merkle_tree, :bloom_filter])
     ) and valid_values?(block)
   end
 
@@ -34,6 +36,7 @@ defmodule Bitcoin.Schemas.Block do
         :txns -> is_list(v)
         :height -> is_number(v)
         :merkle_tree -> is_map(v)
+        :bloom_filter -> is_list(v)
       end
     end)
   end

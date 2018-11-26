@@ -57,7 +57,7 @@ defmodule Bitcoin.Utilities.Keys do
       private_key
       |> to_public_hash
 
-    Base58Check.encode(version, public_hash)
+    Base58Check.encode(public_hash, version)
   end
 
   @doc """

@@ -1,3 +1,5 @@
+require IEx
+
 defmodule Bitcoin.Utilities.BloomFilter do
   @moduledoc """
   BloomFilter implementation for quick probabilistic searches.
@@ -21,6 +23,16 @@ defmodule Bitcoin.Utilities.BloomFilter do
   Puts the given item in the filter i.e. sets the bits corresponding 
   to item's hash values in the bit array to 1.
   """
+  def put(filter, items) when is_list(items) do
+    Enum.reduce(items, filter, fn item, acc ->
+      put(acc, item)
+    end)
+
+    # Enum.map(items, fn item -> 
+    #   put(filter, item)
+    # end)
+  end
+
   def put(filter, item) do
     bits =
       hash(item, filter[:hash_fns], filter[:length])

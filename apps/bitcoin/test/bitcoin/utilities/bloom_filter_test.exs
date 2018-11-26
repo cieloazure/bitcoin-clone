@@ -26,4 +26,12 @@ defmodule Bitcoin.Utilities.BloomFilterTest do
 
     assert !BloomFilter.contains?(filter, "not in filter")
   end
+
+  test "insert list" do
+    filter = BloomFilter.init(@size, @rate)
+    list = ["test1", "test2", "test3"]
+    filter = BloomFilter.put(filter, list)
+
+    assert Enum.all?(list, fn l -> BloomFilter.contains?(filter, l) end)
+  end
 end
