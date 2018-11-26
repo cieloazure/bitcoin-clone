@@ -19,6 +19,10 @@ defmodule Bitcoin.Structures.Chain do
     [genesis_block]
   end
 
+  def new_chain() do
+    []
+  end
+
   @doc """
   Get the topmost item of the chain
   Topmost item signifies the last block
