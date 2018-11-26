@@ -162,8 +162,10 @@ defmodule Bitcoin.BlockchainTest do
       mined_block = Bitcoin.Mining.initiate_mining(block1)
       send(blockchain, {:handle_message, :new_block_found, mined_block})
       Process.sleep(1000)
-      {_, {chain_after, _, _}} = :sys.get_state(blockchain)
+      {_, {chain_after, forks_after, orphans_after}} = :sys.get_state(blockchain)
       assert length(chain_after) > length(chain_before)
+      assert Enum.empty?(forks_after)
+      assert Enum.empty?(orphans_after)
     end
 
     test "the new block belongs in the chain not at the top hence a fork is needed" do
@@ -187,6 +189,7 @@ defmodule Bitcoin.BlockchainTest do
       {_, {chain_after, forks_after, _}} = :sys.get_state(blockchain)
       assert !Enum.empty?(forks_after)
       assert length(chain_after) < length(chain_before)
+      #Process.sleep(1000000)
     end
 
     test "the new block belongs in one of the forks, hence extending the fork, the forks are not of equal length, hence confirming the main chain by using the extended fork" do
