@@ -31,7 +31,7 @@ defmodule Bitcoin.Structures.BlockTest do
   end
 
   describe "create candidate block" do
-    test "target for the candidate block when chain is less than past_difficulty_param" do
+    test "target for the candidate block when chain is less than what is required for retarging" do
       genesis_block = Bitcoin.Structures.Block.create_candidate_genesis_block()
       chain = [genesis_block]
       block = Bitcoin.Structures.Block.create_candidate_block([], chain)
@@ -40,14 +40,28 @@ defmodule Bitcoin.Structures.BlockTest do
                Bitcoin.Structures.Block.get_header_attr(genesis_block, :bits)
     end
 
-    test "target for the candidate block when the chain is greater than the past_difficulty_param" do
+    test "target for the candidate block when the chain is greater than the what is required for retargeting" do
       genesis_block = Bitcoin.Structures.Block.create_candidate_genesis_block()
       Process.sleep(1000)
       chain = [genesis_block]
       block1 = Bitcoin.Structures.Block.create_candidate_block([], chain)
       block1 = %Bitcoin.Schemas.Block{block1 | height: 10}
       Process.sleep(1000)
-      chain = [genesis_block, block1, block1, block1, block1,block1,block1, block1, block1, block1, block1]
+
+      chain = [
+        genesis_block,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1
+      ]
+
       block2 = Bitcoin.Structures.Block.create_candidate_block([], chain)
 
       assert Bitcoin.Structures.Block.get_header_attr(block2, :bits) !=

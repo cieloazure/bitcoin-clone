@@ -1,3 +1,5 @@
+require IEx
+
 defmodule Bitcoin.Blockchain do
   @moduledoc """
   Bitcoin.Blockchain
@@ -39,6 +41,10 @@ defmodule Bitcoin.Blockchain do
     GenServer.call(blockchain, {:get_chain})
   end
 
+  def set_chain(blockchain, new_chain) do
+    GenServer.call(blockchain, {:set_chain, new_chain})
+  end
+
   ###                      ###
   ###                      ###
   ### GenServer Callbacks  ###
@@ -71,6 +77,16 @@ defmodule Bitcoin.Blockchain do
     {:reply, chain, state}
   end
 
+  @impl true
+  def handle_call({:change_node, new_node}, _from, {_node, {chain, forks, orphans}}) do
+    {:reply, :ok, {new_node, {chain, forks, orphans}}}
+  end
+
+  @impl true
+  def handle_call({:set_chain, new_chain}, _from, {node, {chain, forks, orphans}}) do
+    {:reply, :ok, {node, {new_chain, forks, orphans}}}
+  end
+
   @doc """
   Bitcoin.Blockchain.handle_info callback for `:handle_message`
 
@@ -94,7 +110,10 @@ defmodule Bitcoin.Blockchain do
           {new_chain, new_forks, new_orphans} =
             new_block_found(payload, node, {chain, forks, orphans})
 
-          Bitcoin.Node.start_mining(node, new_chain)
+          if length(new_chain) > length(chain) do
+            Bitcoin.Node.start_mining(node, new_chain)
+          end
+
           {new_chain, new_forks, new_orphans}
 
         :new_transaction ->
@@ -140,6 +159,7 @@ defmodule Bitcoin.Blockchain do
 
   defp new_block_found(payload, node, {chain, forks, orphans}) do
     new_block = payload
+
     if Block.valid?(new_block, chain) do
       {location, condition} = find_block(new_block, {chain, forks})
 
@@ -151,15 +171,53 @@ defmodule Bitcoin.Blockchain do
 
         {:in_chain, :with_fork} ->
           {chain, forks} = Chain.fork(chain, new_block)
-          {forks, orphans} = consolidate_orphans_in_forks(forks, orphans)
+
+          {chain, forks, orphans} = 
+            # Are there any orphans that can resolve the fork?
+          if !Enum.empty?(orphans) do
+            {forks, new_orphans} = consolidate_orphans_in_forks(forks, orphans)
+            fork_length = List.first(forks) |> length
+
+            {new_chain, forks} =
+              if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
+                max_fork = Enum.max_by(forks, &length(&1))
+                {max_fork ++ chain, []}
+              else
+                {chain, forks}
+              end
+            {new_chain, forks, new_orphans}
+          else
+            {chain, forks, orphans}
+          end
+
           {chain, forks, orphans}
 
         {:in_fork, fork_index} ->
           fork = Enum.at(forks, fork_index)
           extended_fork = [new_block | fork]
-          new_chain = extended_fork
+          forks = List.replace_at(forks, fork_index, extended_fork)
+
+          {forks, orphans} =
+            if length(forks) > 0 do
+              consolidate_orphans_in_forks(forks, orphans)
+            else
+              {forks, orphans}
+            end
+
+          fork_length = List.first(forks) |> length
+          # If all forks are of equal length
+          # we can't make an assumption about the main chain at the moment
+          # Wait for another block
+          {new_chain, forks} =
+            if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
+              max_fork = Enum.max_by(forks, &length(&1))
+              {max_fork ++ chain, []}
+            else
+              {chain, forks}
+            end
+
           {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
-          {new_chain, [], orphans}
+          {new_chain, forks, orphans}
 
         {:in_orphan, _} ->
           {chain, forks, [new_block | orphans]}
@@ -172,12 +230,12 @@ defmodule Bitcoin.Blockchain do
   defp find_block(block, {chain, forks}) do
     prev_hash = Block.get_header_attr(block, :prev_block_hash)
 
-    block =
+    chain_block =
       Enum.find(chain, fn block ->
         prev_hash == Block.get_attr(block, :block_header) |> double_sha256
       end)
 
-    if !is_nil(block) do
+    if !is_nil(chain_block) do
       top = Chain.top(chain)
       top_hash = Block.get_attr(top, :block_header) |> double_sha256
 
@@ -189,12 +247,12 @@ defmodule Bitcoin.Blockchain do
     else
       fork_index =
         Enum.find_index(forks, fn fork ->
-          block =
+          fork_block =
             Enum.find(fork, fn block ->
               prev_hash == Block.get_attr(block, :block_header) |> double_sha256
             end)
 
-          !is_nil(block)
+          !is_nil(fork_block)
         end)
 
       if !is_nil(fork_index) do
@@ -205,13 +263,17 @@ defmodule Bitcoin.Blockchain do
     end
   end
 
-  defp consolidate_orphans_in_forks(forks, orphans) do
+  defp consolidate_orphans_in_forks(forks, orphans) when length(orphans) > 0 do
     Enum.map_reduce(forks, orphans, fn fork_list, orphans ->
       consolidate_orphans(fork_list, orphans)
     end)
   end
 
-  defp consolidate_orphans(chain, orphans) do
+  defp consolidate_orphans_in_forks(forks, orphans) do
+    {forks, orphans}
+  end
+
+  defp consolidate_orphans(chain, orphans) when length(orphans) > 0 do
     # any of the orphans
     {no_more_orphans, still_orphans} =
       Enum.split_with(orphans, fn orphan ->
@@ -227,5 +289,9 @@ defmodule Bitcoin.Blockchain do
       end)
 
     {chain ++ no_more_orphans, still_orphans}
+  end
+
+  defp consolidate_orphans(chain, orphans) do
+    {chain, orphans}
   end
 end

@@ -1,3 +1,5 @@
+require IEx
+
 defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.MerkleTree
@@ -7,12 +9,11 @@ defmodule Bitcoin.Structures.Block do
   @coin 100_000_000
   @halving_interval 210_000
   @proof_of_work_limit "1A0FFFFF"
-  @min_proof_of_work  "1EFFFFFF"
 
   # Constants required to retarget a difficulty
   # In this case, the difficulty will be retargeted after
   # every block
-  # It is also assumed that will take 60secs to generate a block
+  # It is also assumed that will take 1secs to generate a block
   # If the time required to produce one block is greater then the 
   # difficulty should increase else it should decrease
   @retarget_difficulty_after_blocks 10
@@ -20,9 +21,23 @@ defmodule Bitcoin.Structures.Block do
 
   @doc """
   Create the candidate genesis block for the blockchain
+
+  Arguments:
+    * difficulty: 
+        - Determined the target bits for the genesis block
+        - Has default value of "1EFFFFFF" which gives 2 zeros
+    * recipient:
+        - Determines who the genesis block belongs to, typically this will be done
+          by the blockchain creator, although anyone can do it. Creating a genesis
+          block is the first in starting the blockchain. Any new nodes or chain will
+          always have the genesis block as their first block.
+
+   Returns:
+    * A genesis block which has not yet been mined. The block can be mined by calling
+      `Bitcoin.Mining`
   """
   def create_candidate_genesis_block(
-        difficulty \\ "1effffff",
+        difficulty \\ "1EFFFFFF",
         recipient \\ "<blockchain_creator/first_miner/satoshi_nakomoto>"
       ) do
     {:ok, gen_tx} = Bitcoin.Structures.Transaction.create_generation_transaction(0, 0, recipient)
@@ -58,13 +73,13 @@ defmodule Bitcoin.Structures.Block do
         blockchain,
         recipient \\ "<bitcoin-address-from-wallet>"
       ) do
+    # Get the top most block of the chain
     last_block = Bitcoin.Structures.Chain.top(blockchain)
     timestamp = DateTime.utc_now()
     height = get_attr(last_block, :height) + 1
     prev_block_hash = get_attr(last_block, :block_header) |> double_sha256
     version = 1
 
-    # TODO: last_block may be equal to first_block
     bits =
       get_next_target(
         last_block,
@@ -138,7 +153,7 @@ defmodule Bitcoin.Structures.Block do
   """
   def calculate_target(block) do
     bits = get_header_attr(block, :bits)
-    #IO.inspect("Calculate target: #{bits}")
+    # IO.inspect("Calculate target: #{bits}")
     calculate_target_from_bits(bits)
   end
 
@@ -147,7 +162,7 @@ defmodule Bitcoin.Structures.Block do
   """
   def valid?(block, chain) do
     with true <- valid_fields?(block),
-         {true, is_genesis_block} <- valid_height?(block, chain),
+         {_, is_genesis_block} <- valid_height?(block, chain),
          true <- valid_proof_of_work?(block, chain, is_genesis_block) do
       true
     else
@@ -165,7 +180,7 @@ defmodule Bitcoin.Structures.Block do
   # For example, 
   # calculate_target_from_bits("1fffffff") will give <<0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   # 0, 0, 0, 0, 0, 0, 0, 0>>
-  def calculate_target_from_bits(bits) when is_bitstring(bits) do
+  defp calculate_target_from_bits(bits) when is_bitstring(bits) do
     {exponent, coeffiecient} = String.split_at(bits, 2)
 
     exponent = hex_to_decimal(exponent)
@@ -183,7 +198,7 @@ defmodule Bitcoin.Structures.Block do
   # For example, 
   # calculate_bits_from_target(:binary.decode_unsigned(<<0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   # 0, 0, 0, 0, 0, 0, 0, 0>>)) will give "1FFFFFFF"
-  def calculate_bits_from_target(new_target) when is_number(new_target) do
+  defp calculate_bits_from_target(new_target) when is_number(new_target) do
     new_target_bin = decimal_to_binary(new_target)
     <<first_byte::bytes-size(1), _::bits>> = new_target_bin
 
@@ -221,8 +236,7 @@ defmodule Bitcoin.Structures.Block do
          retarget_difficulty_after_blocks,
          expected_time_to_solve_one_block_in_secs
        ) do
-
-    last_target = get_header_attr(last_block, :bits)
+    last_target = get_header_attr(last_block, :bits) || "1EFFFFFF"
     height = get_attr(last_block, :height)
 
     if height != 0 and rem(height, retarget_difficulty_after_blocks) == 0 do
@@ -244,7 +258,13 @@ defmodule Bitcoin.Structures.Block do
       IO.puts("height: #{height}")
       IO.puts("last 10th block height: #{inspect(get_attr(first_block, :height))}")
       IO.puts("actual time diff: #{time_difference}")
-      modifier = get_modifier(time_difference, expected_time_to_solve_one_block_in_secs * retarget_difficulty_after_blocks)
+
+      modifier =
+        get_modifier(
+          time_difference,
+          expected_time_to_solve_one_block_in_secs * retarget_difficulty_after_blocks
+        )
+
       IO.puts("modifier: #{inspect(modifier)}")
       # Checking time difference
       # Because, a time_difference of 0 will make the new_target 0
@@ -262,14 +282,14 @@ defmodule Bitcoin.Structures.Block do
           new_target
         end
 
-      #new_target_bin = decimal_to_binary(new_target)
+      # new_target_bin = decimal_to_binary(new_target)
 
-      #new_target = if byte_size(new_target_bin) >= 32 do
-        #IEx.pry
-        #calculate_target_from_bits(@min_proof_of_work) |> binary_to_decimal
-      #else
-        #new_target
-      #end
+      # new_target = if byte_size(new_target_bin) >= 32 do
+      # IEx.pry
+      # calculate_target_from_bits(@min_proof_of_work) |> binary_to_decimal
+      # else
+      # new_target
+      # end
 
       # Calculate the new bits string 
       calculate_bits_from_target(new_target)
