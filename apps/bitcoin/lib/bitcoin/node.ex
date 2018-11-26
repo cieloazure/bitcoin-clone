@@ -188,97 +188,60 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
+    IEx.pry
     state =
       if Transaction.valid?(
            transaction,
            Bitcoin.Blockchain.get_chain(state[:blockchain]),
-           state[:tx_pool]
-         ),
-         do: Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool]),
-         else: state
+           state[:tx_pool],
+           self()
+         ) do
+        IEx.pry
+        state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
+
+        orphan_pool = update_orphan_pool(transaction, state[:orphan_pool])
+
+        Keyword.put(state, :orphan_pool, orphan_pool)
+      else
+        state
+      end
 
     {:noreply, state}
   end
 
   @impl true
-  def handle_info({:orphan_transaction, transaction}, state) do
-    state = Keyword.put(state, :orphan_pool, [transaction] ++ state[:tx_pool])
+  def handle_info({:orphan_transaction, transaction, unreferenced_inputs}, state) do
+    state =
+      if !Enum.any?(state[:orphan_pool], fn txn -> Map.equal?(txn, transaction) end),
+        do: Keyword.put(state, :orphan_pool, [transaction] ++ state[:tx_pool]),
+        else: state
+
     {:noreply, state}
   end
 
   ## PRIVATE METHODS ##
+  defp update_orphan_pool(transaction, orphan_pool) do
+    transaction_params =
+      Map.get(transaction, :outputs)
+      |> Enum.map(fn output -> {Map.get(output, :tx_id), Map.get(output, :output_index)} end)
 
-  # Validate the transaction
-  # defp verify_transaction(transaction, state) do
-  #   chain = Bitcoin.Blockchain.get_chain(state[:blockchain])
-  #   inputs = Map.get(transaction, :inputs)
-  #   referenced_outputs = Transaction.get_referenced_outputs(chain, inputs)
-  #   outputs = Map.get(transaction, :outputs)
+    adopted =
+      Enum.filter(orphan_pool, fn {orphan, unreferenced_inputs} ->
+        unreferenced_inputs
+        |> Enum.all?(fn input ->
+          Enum.any?(transaction_params, fn {tx_id, output_index} ->
+            Map.get(input, :tx_id) == tx_id and Map.get(input, :output_index) == output_index
+          end)
+        end)
+      end)
 
-  #   try do
-  #     # 1. verify structure
-  #     if !Bitcoin.Schemas.Transaction.valid?(transaction),
-  #       do: throw(:break)
-
-  #     # 2. verify neither inputs nor outputs are empty
-  #     if Enum.empty?(inputs) or Enum.empty?(outputs),
-  #       do: throw(:break)
-
-  #     # 3. verify for each input, referenced output exists.
-  #     # If not, put in orphan pool if matching transaction doesn't already exist.
-  #     if Enum.any?(referenced_outputs, fn output -> is_nil(output) end) do
-  #       send(self(), {:orphan_transaction, transaction})
-  #       throw(:break)
-  #     end
-
-  #     # 4. verify inputs and outputs' totals are: 0 <= total < 21m
-  #     if !(Transaction.valid_total?(referenced_outputs) and Transaction.valid_total?(outputs)),
-  #       do: throw(:break)
-
-  #     # 5. verify standard form of locking and unlocking scripts
-  #     # TODO:
-
-  #     # 6. verify for each input, referenced output is unspent
-  #     # 7. verify unlocking script validates against locking scripts.
-  #     if !(Enum.zip(inputs, referenced_outputs)
-  #          |> Enum.all?(fn {input, referenced_output} ->
-  #            verify_input(input, referenced_output, chain)
-  #          end)),
-  #        do: throw(:break)
-
-  #     # 8. reject if sum(outputs) > sum(inputs)
-  #     sum_inputs = Enum.reduce(inputs, fn input, acc -> Map.get(input, :amount) + acc end)
-  #     sum_outputs = Enum.reduce(outputs, fn output, acc -> Map.get(output, :amount) + acc end)
-
-  #     if sum_outputs > sum_inputs, do: throw(:break)
-
-  #     # 9. reject if transaction fee is too low to get into empty block
-  #     # TODO:
-  #   catch
-  #     :break -> false
-  #   end
-  # end
-
-  # defp verify_input(input, referenced_outputs, chain) do
-  #   try do
-  #     # 7. verify unlocking script validates against locking scripts.
-  #     script =
-  #       ScriptUtil.join(
-  #         Map.get(input, :unlocking_script),
-  #         Map.get(referenced_outputs, :locking_script)
-  #       )
-
-  #     if !ScriptUtil.valid?(script),
-  #       do: throw({:break, false})
-
-  #     # 6. verify for each input, referenced output is unspent
-  #     if !Transaction.unspent_output?(referenced_outputs, chain),
-  #       do: throw({:break, false})
-
-  #     throw({:break, true})
-  #   catch
-  #     {:break, result} ->
-  #       result
-  #   end
-  # end
+    orphan_pool =
+      if !is_nil(adopted) do
+        Enum.reject(orphan_pool, fn orphan -> 
+          Enum.any?(adopted, fn {tx, _unref_input} -> Map.equal?(tx, orphan) end)
+        end)
+      else
+        orphan_pool
+      end
+  end
 end

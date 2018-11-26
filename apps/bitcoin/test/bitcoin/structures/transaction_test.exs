@@ -51,9 +51,7 @@ defmodule Bitcoin.Structures.TransactionTest do
     test "incorrect unlocking script" do
       chain = get_chain()
       assert Bitcoin.Schemas.Transaction.valid?(inv_tx2())
-      assert !(Transaction.valid?(inv_tx2(), chain, []))
+      assert !Transaction.valid?(inv_tx2(), chain, [])
     end
-
-    
   end
 end

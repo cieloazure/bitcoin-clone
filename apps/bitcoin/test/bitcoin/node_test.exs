@@ -1,6 +1,7 @@
 defmodule Bitcoin.NodeTest do
   use ExUnit.Case
   alias Bitcoin.Structures.Block
+  import DummyData
 
   test "sync operation without any peers will not change the blockchain" do
     {:ok, seed} = SeedServer.start_link([])
@@ -85,5 +86,40 @@ defmodule Bitcoin.NodeTest do
     # Process.sleep(3000)
     ## Bitcoin.Node.new_block_found(node1, "<new-block-to-broadcast>")
     # Process.sleep(5000)
+  end
+
+  test "update transaction pool" do
+    # :debugger.start()
+    # :int.ni(Bitcoin.Node)
+    # # :int.break(Bitcoin.Node, 191)
+    # :int.break(Bitcoin.Node, 198)
+    # # :int.ni(Bitcoin.Structures.Transaction)
+    # # :int.break(Bitcoin.Structures.Transaction, 215)
+
+    {:ok, seed} = SeedServer.start_link([])
+    gen_block = genesis_block()
+    chain = get_chain()
+
+    {:ok, node1} =
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.1",
+        seed: seed,
+        genesis_block: gen_block,
+        identifier: 1
+      )
+
+    blockchain1 = :sys.get_state(node1)[:blockchain]
+
+    Bitcoin.Blockchain.set_chain(blockchain1, chain)
+
+    tx_pool = :sys.get_state(node1)[:tx_pool]
+    tx = tx5()
+    # assert Bitcoin.Structures.Transaction.valid?(tx, chain, :sys.get_state(node1)[:tx_pool], node1)
+
+    send(node1, {:new_transaction, tx})
+    Process.sleep(600)
+    assert Enum.member?(:sys.get_state(node1)[:tx_pool], tx)
+
+    # IO.inspect(:sys.get_state(:sys.get_state(node1)[:blockchain]))
   end
 end

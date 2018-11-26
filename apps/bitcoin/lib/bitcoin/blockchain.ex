@@ -41,6 +41,10 @@ defmodule Bitcoin.Blockchain do
     GenServer.call(blockchain, {:get_chain})
   end
 
+  def set_chain(blockchain, new_chain) do
+    GenServer.call(blockchain, {:set_chain, new_chain})
+  end
+
   ###                      ###
   ###                      ###
   ### GenServer Callbacks  ###
@@ -73,6 +77,15 @@ defmodule Bitcoin.Blockchain do
     {:reply, chain, state}
   end
 
+  @doc """
+  Sets the main chain of the blockchain
+  Useful for testing
+  """
+  @impl true
+  def handle_call({:set_chain, new_chain}, _from, {node, {chain, forks, orphans}}) do
+    {:reply, :ok, {node, {new_chain, forks, orphans}}}
+  end
+  
   @doc """
   Bitcoin.Blockchain.handle_info callback for `:handle_message`
 
