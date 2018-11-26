@@ -1,3 +1,5 @@
+require IEx
+
 defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.MerkleTree
@@ -71,8 +73,7 @@ defmodule Bitcoin.Structures.Block do
         blockchain,
         recipient \\ "<bitcoin-address-from-wallet>"
       ) do
-    
-        # Get the top most block of the chain
+    # Get the top most block of the chain
     last_block = Bitcoin.Structures.Chain.top(blockchain)
     timestamp = DateTime.utc_now()
     height = get_attr(last_block, :height) + 1
@@ -152,7 +153,7 @@ defmodule Bitcoin.Structures.Block do
   """
   def calculate_target(block) do
     bits = get_header_attr(block, :bits)
-    #IO.inspect("Calculate target: #{bits}")
+    # IO.inspect("Calculate target: #{bits}")
     calculate_target_from_bits(bits)
   end
 
@@ -161,7 +162,7 @@ defmodule Bitcoin.Structures.Block do
   """
   def valid?(block, chain) do
     with true <- valid_fields?(block),
-         {true, is_genesis_block} <- valid_height?(block, chain),
+         {_, is_genesis_block} <- valid_height?(block, chain),
          true <- valid_proof_of_work?(block, chain, is_genesis_block) do
       true
     else
@@ -235,8 +236,7 @@ defmodule Bitcoin.Structures.Block do
          retarget_difficulty_after_blocks,
          expected_time_to_solve_one_block_in_secs
        ) do
-
-    last_target = get_header_attr(last_block, :bits)
+    last_target = get_header_attr(last_block, :bits) || "1EFFFFFF"
     height = get_attr(last_block, :height)
 
     if height != 0 and rem(height, retarget_difficulty_after_blocks) == 0 do
@@ -258,7 +258,13 @@ defmodule Bitcoin.Structures.Block do
       IO.puts("height: #{height}")
       IO.puts("last 10th block height: #{inspect(get_attr(first_block, :height))}")
       IO.puts("actual time diff: #{time_difference}")
-      modifier = get_modifier(time_difference, expected_time_to_solve_one_block_in_secs * retarget_difficulty_after_blocks)
+
+      modifier =
+        get_modifier(
+          time_difference,
+          expected_time_to_solve_one_block_in_secs * retarget_difficulty_after_blocks
+        )
+
       IO.puts("modifier: #{inspect(modifier)}")
       # Checking time difference
       # Because, a time_difference of 0 will make the new_target 0
@@ -276,14 +282,14 @@ defmodule Bitcoin.Structures.Block do
           new_target
         end
 
-      #new_target_bin = decimal_to_binary(new_target)
+      # new_target_bin = decimal_to_binary(new_target)
 
-      #new_target = if byte_size(new_target_bin) >= 32 do
-        #IEx.pry
-        #calculate_target_from_bits(@min_proof_of_work) |> binary_to_decimal
-      #else
-        #new_target
-      #end
+      # new_target = if byte_size(new_target_bin) >= 32 do
+      # IEx.pry
+      # calculate_target_from_bits(@min_proof_of_work) |> binary_to_decimal
+      # else
+      # new_target
+      # end
 
       # Calculate the new bits string 
       calculate_bits_from_target(new_target)

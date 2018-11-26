@@ -2,7 +2,7 @@ defmodule Bitcoin.Utilities.BloomFilterTest do
   use ExUnit.Case
   alias Bitcoin.Utilities.BloomFilter
 
-  @size	10
+  @size 10
   @rate 0.3
   @length 25
 
@@ -14,16 +14,16 @@ defmodule Bitcoin.Utilities.BloomFilterTest do
   end
 
   test "filter contains item" do
-  	filter = BloomFilter.init(@size, @rate)
-  	filter = BloomFilter.put(filter, "test")
+    filter = BloomFilter.init(@size, @rate)
+    filter = BloomFilter.put(filter, "test")
 
-  	assert BloomFilter.contains?(filter, "test")
+    assert BloomFilter.contains?(filter, "test")
   end
 
   test "filter doesn't contain item" do
-  	filter = BloomFilter.init(@size, @rate)
-  	filter = BloomFilter.put(filter, "test")
+    filter = BloomFilter.init(@size, @rate)
+    filter = BloomFilter.put(filter, "test")
 
-  	assert !BloomFilter.contains?(filter, "not in filter") 
+    assert !BloomFilter.contains?(filter, "not in filter")
   end
 end

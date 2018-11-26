@@ -95,7 +95,7 @@ defmodule Bitcoin.Node do
     # Kill previous mining process
     if !is_nil(state[:mining]) do
       status = Task.shutdown(state[:mining])
-      #IO.inspect(status)
+      # IO.inspect(status)
     end
 
     # Start a new mining process

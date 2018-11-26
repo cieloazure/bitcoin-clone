@@ -6,7 +6,7 @@ defmodule Bitcoin.Structures.ChainTest do
   describe "new_chain" do
     test "when the genesis block is provided it will return a list with genesis block" do
       genesis_block = Block.create_candidate_genesis_block()
-      chain =  Chain.new_chain(genesis_block)
+      chain = Chain.new_chain(genesis_block)
       assert chain == [genesis_block]
     end
 
@@ -47,13 +47,13 @@ defmodule Bitcoin.Structures.ChainTest do
       block = %Bitcoin.Schemas.Block{block | height: 2}
       chain = [block | chain]
       chain = Chain.sort(chain, :height)
-      assert Enum.map(chain, &Block.get_attr(&1, :height)) == [0,1,2]
+      assert Enum.map(chain, &Block.get_attr(&1, :height)) == [0, 1, 2]
     end
   end
 
   describe "fork" do
     test "correctly forks a lists" do
-      chain = create_chain([], 6, nil, 0)
+      chain = create_dummy_chain([], 6, nil, 0)
       prev_block = Enum.find(chain, fn block -> Block.get_attr(block, :height) == 3 end)
 
       new_block_h = %Bitcoin.Schemas.BlockHeader{
@@ -80,11 +80,11 @@ defmodule Bitcoin.Structures.ChainTest do
     end
   end
 
-  defp create_chain(chain, length, _, index) when index >= length do
+  defp create_dummy_chain(chain, length, _, index) when index >= length do
     chain
   end
 
-  defp create_chain(chain, length, last_block_header, index) do
+  defp create_dummy_chain(chain, length, last_block_header, index) do
     prev_block = last_block_header || <<0>>
 
     blockh = %Bitcoin.Schemas.BlockHeader{
@@ -97,6 +97,6 @@ defmodule Bitcoin.Structures.ChainTest do
     }
 
     chain = [block | chain]
-    create_chain(chain, length, blockh, index + 1)
+    create_dummy_chain(chain, length, blockh, index + 1)
   end
 end
