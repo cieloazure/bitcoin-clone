@@ -15,12 +15,15 @@ The goal of this project was to learn about internal workings of bitcoin and imp
 ### Functionalities Implemented
 
 #### Core functionalities implemented
-1. Mining Bitcoins
+1. Mining Blocks/Bitcoins
     - Mine genesis block by setting initial difficulty bits to `1EFFFFFF`
     - Create a candidate block for mining from the blockchain
     - Mine the candidate block by using the calculated difficulty
     - Adjust difficulty of the block dynamically by calculating the average time required to mine `10 blocks`
     - We are assuming it takes `1 second` to mine `1 block` in this simulation and the difficulty will be adjusted if the average is above or below that.
+    - The block contains a coinbase transaction which will give bitcoins to the block owner
+    - When the block is mined it is broadcasted to the network
+    - Consensus is achieved when the nodes accept the block 
 2. Wallets
 3. Transactions
 
