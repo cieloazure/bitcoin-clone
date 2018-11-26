@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Blockchain do
   @moduledoc """
   Bitcoin.Blockchain
@@ -67,11 +65,21 @@ defmodule Bitcoin.Blockchain do
     {:ok, {node, {chain, forks, orphans}}}
   end
 
+  @doc """
+  Get the top most block of the chain
+
+  Returns the top most block of the chain
+  """
   @impl true
   def handle_call({:top_block}, _from, {_node, {chain, _forks, _orphans}} = state) do
     {:reply, Chain.top(chain), state}
   end
 
+  @doc """
+  Get the main chain of the blockchain
+
+  Returns the blockchain
+  """
   @impl true
   def handle_call({:get_chain}, _from, {_node, {chain, _forks, _orphans}} = state) do
     {:reply, chain, state}
@@ -79,13 +87,14 @@ defmodule Bitcoin.Blockchain do
 
   @doc """
   Sets the main chain of the blockchain
+
   Useful for testing
   """
   @impl true
   def handle_call({:set_chain, new_chain}, _from, {node, {chain, forks, orphans}}) do
     {:reply, :ok, {node, {new_chain, forks, orphans}}}
   end
-  
+
   @doc """
   Bitcoin.Blockchain.handle_info callback for `:handle_message`
 
@@ -107,14 +116,15 @@ defmodule Bitcoin.Blockchain do
 
         :new_block_found ->
           {new_chain, new_forks, new_orphans} =
-            new_block_found(payload, node, {chain, forks, orphans})
+            new_block_found(payload, {chain, forks, orphans})
 
-          IEx.pry()
-          Bitcoin.Node.start_mining(node, new_chain)
+          if length(new_chain) > length(chain) do
+            Bitcoin.Node.start_mining(node, new_chain)
+          end
+
           {new_chain, new_forks, new_orphans}
 
         :new_transaction ->
-          send(node, {message, payload})
           # save_transaction
           # broadcast_transaction
           nil
@@ -155,44 +165,108 @@ defmodule Bitcoin.Blockchain do
     Chain.save(chain, blocks)
   end
 
-  defp new_block_found(payload, node, {chain, forks, orphans}) do
-    IO.puts("here  at the store of #{inspect(:sys.get_state(node)[:ip_addr])}")
+  # new_block_found
+  #
+  # Handles what to do in case a new block is found. It may either add it to
+  # the main chain or forks or orphans. Also, orphans may reduce.
+  #
+  # Arguments:
+  #   * payload -> includes the new block
+  defp new_block_found(payload, {chain, forks, orphans}) do
     new_block = payload
-    {location, condition} = find_block(new_block, {chain, forks})
-    IEx.pry()
 
-    case {location, condition} do
-      {:in_chain, :at_top} ->
-        new_chain = [new_block | chain]
-        {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
-        {new_chain, forks, orphans}
+    if Block.valid?(new_block, chain) do
+      # Find the location of the block and what's the condition in which it
+      # exists for further processing
+      {location, condition} = find_block(new_block, {chain, forks})
 
-      {:in_chain, :with_fork} ->
-        {chain, forks} = Chain.fork(chain, new_block)
-        {forks, orphans} = consolidate_orphans_in_forks(forks, orphans)
-        {chain, forks, orphans}
+      # Handle different condition
+      case {location, condition} do
+        {:in_chain, :at_top} ->
+          new_chain = [new_block | chain]
+          {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
+          {new_chain, forks, orphans}
 
-      {:in_fork, fork_index} ->
-        fork = Enum.at(forks, fork_index)
-        extended_fork = [new_block | fork]
-        new_chain = extended_fork
-        {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
-        {new_chain, [], orphans}
+        {:in_chain, :with_fork} ->
+          {chain, forks} = Chain.fork(chain, new_block)
 
-      {:in_orphan} ->
-        {chain, forks, [new_block | orphans]}
+          # Are there any orphans that can resolve the fork?
+          {chain, forks, orphans} =
+            if !Enum.empty?(orphans) do
+              {forks, new_orphans} = consolidate_orphans_in_forks(forks, orphans)
+              fork_length = List.first(forks) |> length
+
+              {new_chain, forks} =
+                if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
+                  max_fork = Enum.max_by(forks, &length(&1))
+                  {max_fork ++ chain, []}
+                else
+                  {chain, forks}
+                end
+
+              {new_chain, forks, new_orphans}
+            else
+              {chain, forks, orphans}
+            end
+
+          {chain, forks, orphans}
+
+        {:in_fork, fork_index} ->
+          fork = Enum.at(forks, fork_index)
+          extended_fork = [new_block | fork]
+          forks = List.replace_at(forks, fork_index, extended_fork)
+
+          {forks, orphans} =
+            if length(forks) > 0 do
+              consolidate_orphans_in_forks(forks, orphans)
+            else
+              {forks, orphans}
+            end
+
+          fork_length = List.first(forks) |> length
+          # If all forks are of equal length
+          # we can't make an assumption about the main chain at the moment
+          # Wait for another block
+          {new_chain, forks} =
+            if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
+              max_fork = Enum.max_by(forks, &length(&1))
+              {max_fork ++ chain, []}
+            else
+              {chain, forks}
+            end
+
+          {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
+          {new_chain, forks, orphans}
+
+        {:in_orphan, _} ->
+          {chain, forks, [new_block | orphans]}
+      end
+    else
+      {chain, forks, orphans}
     end
   end
 
+  # find_block
+  #
+  # Accepts the block and the current chain and forks list as arguments
+  #
+  # Returns the condition location in which the block is found which may be
+  # `:in_chain` or `:in_fork` or `:in_orphan`
+  #
+  # Also returns the condition of the new block which may be 
+  # `:at_top` -> No forks present, New block will go in main chain
+  # `:with_fork` -> A fork is present. New block will go in a fork
+  # `:fork_index` -> Present in already fork block. New block will go in a fork
+  #  It may consolidate to main chain
   defp find_block(block, {chain, forks}) do
     prev_hash = Block.get_header_attr(block, :prev_block_hash)
 
-    block =
+    chain_block =
       Enum.find(chain, fn block ->
         prev_hash == Block.get_attr(block, :block_header) |> double_sha256
       end)
 
-    if !is_nil(block) do
+    if !is_nil(chain_block) do
       top = Chain.top(chain)
       top_hash = Block.get_attr(top, :block_header) |> double_sha256
 
@@ -204,29 +278,46 @@ defmodule Bitcoin.Blockchain do
     else
       fork_index =
         Enum.find_index(forks, fn fork ->
-          block =
+          fork_block =
             Enum.find(fork, fn block ->
               prev_hash == Block.get_attr(block, :block_header) |> double_sha256
             end)
 
-          !is_nil(block)
+          !is_nil(fork_block)
         end)
 
       if !is_nil(fork_index) do
         {:in_fork, fork_index}
       else
-        {:in_orphan}
+        {:in_orphan, nil}
       end
     end
   end
 
-  defp consolidate_orphans_in_forks(forks, orphans) do
+  # consolidate_orphans_in_forks
+  #
+  # When a new block comes in, it may be the parent of the orphan block
+  # This is function to remove the block from orphan and put it in the forks
+  #
+  # Returns the updated forks and orphans
+  defp consolidate_orphans_in_forks(forks, orphans) when length(orphans) > 0 do
     Enum.map_reduce(forks, orphans, fn fork_list, orphans ->
       consolidate_orphans(fork_list, orphans)
     end)
   end
 
-  defp consolidate_orphans(chain, orphans) do
+  defp consolidate_orphans_in_forks(forks, orphans) do
+    {forks, orphans}
+  end
+
+  # consolidate_orphans
+  #
+  # When a new block comes in, it may be the parent of the orphan in the main
+  # branch. This function will remove the node from orphans and put them in the
+  # main chain
+  # 
+  # Returns the updated chain and orphans 
+  defp consolidate_orphans(chain, orphans) when length(orphans) > 0 do
     # any of the orphans
     {no_more_orphans, still_orphans} =
       Enum.split_with(orphans, fn orphan ->
@@ -242,5 +333,9 @@ defmodule Bitcoin.Blockchain do
       end)
 
     {chain ++ no_more_orphans, still_orphans}
+  end
+
+  defp consolidate_orphans(chain, orphans) do
+    {chain, orphans}
   end
 end

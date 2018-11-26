@@ -188,7 +188,6 @@ defmodule Chord.Node do
   Chord.Node.initiate_broadcast
   """
   def initiate_broadcast(node, message, payload \\ nil) do
-    IO.puts("Initiating broadcast from node...")
     GenServer.cast(node, {:initiate_broadcast, message, payload})
   end
 
@@ -554,7 +553,6 @@ defmodule Chord.Node do
   """
   @impl true
   def handle_cast({:initiate_broadcast, message, payload}, state) do
-    IO.inspect("in Intitate_broadcast: at node")
     # Delegate broadcast to common store as distributed store is not applicable
     send(state[:store], {:handle_message, message, payload})
 
@@ -581,10 +579,6 @@ defmodule Chord.Node do
 
   @impl true
   def handle_cast({:receive_broadcast, limit, message, payload}, state) do
-    IO.inspect(
-      "At receive broadcast of the node #{inspect(state[:ip_addr])}, delegating message to store"
-    )
-
     # Delegate broadcast to common store
     send(state[:store], {:handle_message, message, payload})
 
@@ -610,9 +604,13 @@ defmodule Chord.Node do
               limit
             end
 
-          Chord.Node.receive_broadcast(finger[:pid], new_limit, message, payload)
+          if finger[:pid] != self() and !is_nil(finger[:pid]) do
+            Chord.Node.receive_broadcast(finger[:pid], new_limit, message, payload)
+          end
         else
-          Chord.Node.receive_broadcast(finger[:pid], state[:identifier], message, payload)
+          if finger[:pid] != self() and !is_nil(finger[:pid]) do
+            Chord.Node.receive_broadcast(finger[:pid], state[:identifier], message, payload)
+          end
         end
       end
     end)
@@ -789,6 +787,13 @@ defmodule Chord.Node do
   @impl true
   def handle_info({:store_handler, message, payload}, state) do
     send(state[:store], {:handle_message, message, payload})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(msg, state) do
+    IO.inspect("unexpected message")
+    IO.inspect(msg)
     {:noreply, state}
   end
 

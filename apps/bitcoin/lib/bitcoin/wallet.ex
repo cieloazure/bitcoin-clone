@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Wallet do
   @moduledoc """
   A module for managing a wallet
@@ -21,8 +19,6 @@ defmodule Bitcoin.Wallet do
   Collect the Unspent Transacion outputs for the given address from the blockchain
   """
   def collect_utxo(public_key, private_key, chain) do
-    IEx.pry()
-
     utxos =
       Enum.flat_map(chain, fn block ->
         txos =
@@ -37,13 +33,6 @@ defmodule Bitcoin.Wallet do
             verify_signature(txo, unlocking_script)
           end)
 
-        # Chain of blocks succeeding current block
-        # sub_chain =
-        #   Chain.get_blocks(chain, fn b ->
-        #     Block.get_attr(b, :height) >= Block.get_attr(block, :height)
-        #   end)
-
-        IEx.pry()
         # Collect unspent transaction_outputs from the above set
         utxo =
           Enum.filter(user_txos, fn txo ->
@@ -59,7 +48,6 @@ defmodule Bitcoin.Wallet do
   defp verify_signature(tx_output, unlocking_script) do
     locking_script = Map.get(tx_output, :locking_script)
     script = ScriptUtil.join(unlocking_script, locking_script)
-    # script = unlocking_script <> " / " <> locking_script
 
     ScriptUtil.valid?(script)
   end

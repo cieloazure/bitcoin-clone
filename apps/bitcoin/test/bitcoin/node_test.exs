@@ -74,6 +74,31 @@ defmodule Bitcoin.NodeTest do
 
     Bitcoin.Node.start_mining(node1)
 
+    # alias Bitcoin.Structures.Block
+    # {:ok, seed} = SeedServer.start_link([])
+
+    # candidate_genesis_block =
+    # Bitcoin.Structures.Block.create_candidate_genesis_block("1EFFFFFF", "1akashbharatshingte")
+
+    # mined_genesis_block = Bitcoin.Mining.initiate_mining(candidate_genesis_block)
+
+    # {:ok, node1} =
+    # Bitcoin.Node.start_link(
+    # ip_addr: "192.168.0.1",
+    # seed: seed,
+    # genesis_block: mined_genesis_block,
+    # identifier: 1
+    # )
+
+    # {:ok, node2} =
+    # Bitcoin.Node.start_link(
+    # ip_addr: "192.168.0.2",
+    # seed: seed,
+    # genesis_block: mined_genesis_block,
+    # identifier: 2
+    # )
+    # Bitcoin.Node.start_mining(node1)
+
     # Process.sleep(1000)
 
     # {:ok, node2} =
@@ -114,12 +139,10 @@ defmodule Bitcoin.NodeTest do
 
     tx_pool = :sys.get_state(node1)[:tx_pool]
     tx = tx5()
-    # assert Bitcoin.Structures.Transaction.valid?(tx, chain, :sys.get_state(node1)[:tx_pool], node1)
+    assert Bitcoin.Structures.Transaction.valid?(tx, chain, :sys.get_state(node1)[:tx_pool], node1)
 
     send(node1, {:new_transaction, tx})
     Process.sleep(600)
     assert Enum.member?(:sys.get_state(node1)[:tx_pool], tx)
-
-    # IO.inspect(:sys.get_state(:sys.get_state(node1)[:blockchain]))
   end
 end

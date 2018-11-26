@@ -42,6 +42,9 @@ defmodule Bitcoin.Node do
     GenServer.cast(node, {:start_mining, chain})
   end
 
+  @doc """
+  Creates a transaction originating from node's wallet to recipient
+  """
   def transfer_money(node, recipient, amount, fees \\ 0) do
     GenServer.cast(node, {:transfer_money, recipient, amount, fees})
   end
@@ -104,12 +107,18 @@ defmodule Bitcoin.Node do
   end
 
   @doc """
+
+  Bitcoin.Node.handle_cast for `:start_mining`
+
+  This callback will start mining for a new block based on existing chain. It will also 
+  terminate any previous mining process and restart a new process based on new updated chain
   """
   @impl true
   def handle_cast({:start_mining, given_chain}, state) do
     # Kill previous mining process
     if !is_nil(state[:mining]) do
-      Process.exit(state[:mining], :kill)
+      status = Task.shutdown(state[:mining])
+      # IO.inspect(status)
     end
 
     # Start a new mining process
@@ -118,14 +127,14 @@ defmodule Bitcoin.Node do
     transaction_pool = []
 
     candidate_block =
-      Block.create_candidate_block(
+      Bitcoin.Structures.Block.create_candidate_block(
         transaction_pool,
         chain,
         state[:wallet][:bitcoin_address]
       )
 
-    {:ok, pid} = Task.start(Bitcoin.Mining, :mine_async, [candidate_block, self()])
-    state = Keyword.put(state, :mining, pid)
+    task = Task.async(Bitcoin.Mining, :mine_async, [candidate_block, self()])
+    state = Keyword.put(state, :mining, task)
     # Bitcoin.Mining.mine_async(candidate_block, self())
     {:noreply, state}
   end
@@ -168,6 +177,7 @@ defmodule Bitcoin.Node do
 
   @doc """
   Callback to handle when a new block is found
+  Will broadcast the block to it's peers
   """
   @impl true
   def handle_cast({:new_block_found, new_block}, state) do
@@ -218,6 +228,15 @@ defmodule Bitcoin.Node do
 
     {:noreply, state}
   end
+
+  @doc """
+  Handling messages from the tasks
+  """
+  @impl true
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
+
 
   ## PRIVATE METHODS ##
   defp update_orphan_pool(transaction, orphan_pool) do

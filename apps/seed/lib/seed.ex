@@ -19,7 +19,7 @@ defmodule SeedServer do
   Starts the seed server with given options
   """
   def start_link(_opts) do
-    GenServer.start_link(__MODULE__, name: SeedServer)
+    GenServer.start_link(__MODULE__, [], name: :seed_server)
   end
 
   @doc """
