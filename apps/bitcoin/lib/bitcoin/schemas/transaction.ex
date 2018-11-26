@@ -36,7 +36,10 @@ defmodule Bitcoin.Schemas.Transaction do
 
         :inputs ->
           is_list(v) and
-            Enum.all?(v, fn input -> Bitcoin.Schemas.TransactionInput.valid?(input) end)
+            Enum.all?(v, fn input ->
+              Bitcoin.Schemas.TransactionInput.valid?(input) or
+                Bitcoin.Schemas.Coinbase.valid?(input)
+            end)
 
         :output_counter ->
           is_number(v)

@@ -1,3 +1,5 @@
+require IEx
+
 defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.{MerkleTree, BloomFilter}

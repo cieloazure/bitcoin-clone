@@ -1,3 +1,5 @@
+require IEx
+
 defmodule Bitcoin.Wallet do
   @moduledoc """
   A module for managing a wallet
@@ -19,30 +21,39 @@ defmodule Bitcoin.Wallet do
   Collect the Unspent Transacion outputs for the given address from the blockchain
   """
   def collect_utxo(public_key, private_key, chain) do
-    Enum.flat_map(chain, fn block ->
-      txos =
-        Map.get(block, :txns)
-        |> Enum.flat_map(fn txn -> Map.get(txn, :outputs) end)
+    IEx.pry()
 
-      unlocking_script = ScriptUtil.generate_unlocking_script(private_key, public_key)
+    utxos =
+      Enum.flat_map(chain, fn block ->
+        txos =
+          Map.get(block, :txns)
+          |> Enum.flat_map(fn txn -> Map.get(txn, :outputs) end)
 
-      # All the transaction_outputs towards current user
-      user_txos =
-        Enum.filter(txos, fn txo ->
-          verify_signature(txo, unlocking_script)
-        end)
+        unlocking_script = ScriptUtil.generate_unlocking_script(private_key, public_key)
 
-      # Chain of blocks succeeding current block
-      sub_chain =
-        Chain.get_blocks(chain, fn b ->
-          Block.get_attr(b, :height) > Block.get_attr(block, :height)
-        end)
+        # All the transaction_outputs towards current user
+        user_txos =
+          Enum.filter(txos, fn txo ->
+            verify_signature(txo, unlocking_script)
+          end)
 
-      # Collect unspent transaction_outputs from the above set
-      Enum.filter(user_txos, fn txo ->
-        Transaction.unspent_output?(txo, sub_chain)
+        # Chain of blocks succeeding current block
+        # sub_chain =
+        #   Chain.get_blocks(chain, fn b ->
+        #     Block.get_attr(b, :height) >= Block.get_attr(block, :height)
+        #   end)
+
+        IEx.pry()
+        # Collect unspent transaction_outputs from the above set
+        utxo =
+          Enum.filter(user_txos, fn txo ->
+            Transaction.unspent_output?(txo, chain)
+          end)
+
+        utxo
       end)
-    end)
+
+    utxos
   end
 
   defp verify_signature(tx_output, unlocking_script) do

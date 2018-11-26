@@ -5,8 +5,7 @@ defmodule Bitcoin.Node do
   A Bitcoin full node
   """
   use GenServer
-  alias Bitcoin.Structures.{Transaction, Block, Chain}
-  alias Bitcoin.Utilities.ScriptUtil
+  alias Bitcoin.Structures.{Transaction, Block}
 
   ###             ###
   ###             ###
@@ -119,7 +118,7 @@ defmodule Bitcoin.Node do
     transaction_pool = []
 
     candidate_block =
-      Bitcoin.Structures.Block.create_candidate_block(
+      Block.create_candidate_block(
         transaction_pool,
         chain,
         state[:wallet][:bitcoin_address]
@@ -190,9 +189,13 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
     state =
-      if verify_transaction(transaction, state),
-        do: Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool]),
-        else: state
+      if Transaction.valid?(
+           transaction,
+           Bitcoin.Blockchain.get_chain(state[:blockchain]),
+           state[:tx_pool]
+         ),
+         do: Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool]),
+         else: state
 
     {:noreply, state}
   end
@@ -206,91 +209,76 @@ defmodule Bitcoin.Node do
   ## PRIVATE METHODS ##
 
   # Validate the transaction
-  defp verify_transaction(transaction, state) do
-    inputs = Map.get(transaction, :inputs)
-    outputs = Map.get(transaction, :outputs)
+  # defp verify_transaction(transaction, state) do
+  #   chain = Bitcoin.Blockchain.get_chain(state[:blockchain])
+  #   inputs = Map.get(transaction, :inputs)
+  #   referenced_outputs = Transaction.get_referenced_outputs(chain, inputs)
+  #   outputs = Map.get(transaction, :outputs)
 
-    try do
-      # 1. verify structure
-      if !Bitcoin.Schemas.Transaction.valid?(transaction),
-        do: throw(:break)
+  #   try do
+  #     # 1. verify structure
+  #     if !Bitcoin.Schemas.Transaction.valid?(transaction),
+  #       do: throw(:break)
 
-      # 2. verify neither inputs nor outputs are empty
-      if Enum.empty?(inputs) or Enum.empty?(outputs),
-        do: throw(:break)
+  #     # 2. verify neither inputs nor outputs are empty
+  #     if Enum.empty?(inputs) or Enum.empty?(outputs),
+  #       do: throw(:break)
 
-      # 3. verify inputs and outputs' totals are: 0 <= total < 21m
-      if !(Transaction.valid_total?(inputs) and Transaction.valid_total?(outputs)),
-        do: throw(:break)
+  #     # 3. verify for each input, referenced output exists.
+  #     # If not, put in orphan pool if matching transaction doesn't already exist.
+  #     if Enum.any?(referenced_outputs, fn output -> is_nil(output) end) do
+  #       send(self(), {:orphan_transaction, transaction})
+  #       throw(:break)
+  #     end
 
-      # 4. verify standard form of locking and unlocking scripts
-      # TODO:
+  #     # 4. verify inputs and outputs' totals are: 0 <= total < 21m
+  #     if !(Transaction.valid_total?(referenced_outputs) and Transaction.valid_total?(outputs)),
+  #       do: throw(:break)
 
-      # 5. verify for each input, referenced output exists.
-      # If not, put in orphan pool if matching transaction doesn't already exist.
-      # 6. verify for each input, referenced output is unspent
-      # 7. verify unlocking script validates against locking scripts.
-      if !Enum.all?(inputs, fn input ->
-           verify_input(input, transaction, Bitcoin.Blockchain.get_chain(state[:blockchain]))
-         end),
-         do: throw(:break)
+  #     # 5. verify standard form of locking and unlocking scripts
+  #     # TODO:
 
-      # 8. reject if sum(outputs) > sum(inputs)
-      sum_inputs = Enum.reduce(inputs, fn input, acc -> Map.get(input, :amount) + acc end)
-      sum_outputs = Enum.reduce(outputs, fn output, acc -> Map.get(output, :amount) + acc end)
+  #     # 6. verify for each input, referenced output is unspent
+  #     # 7. verify unlocking script validates against locking scripts.
+  #     if !(Enum.zip(inputs, referenced_outputs)
+  #          |> Enum.all?(fn {input, referenced_output} ->
+  #            verify_input(input, referenced_output, chain)
+  #          end)),
+  #        do: throw(:break)
 
-      if sum_outputs > sum_inputs, do: throw(:break)
+  #     # 8. reject if sum(outputs) > sum(inputs)
+  #     sum_inputs = Enum.reduce(inputs, fn input, acc -> Map.get(input, :amount) + acc end)
+  #     sum_outputs = Enum.reduce(outputs, fn output, acc -> Map.get(output, :amount) + acc end)
 
-      # 9. reject if transaction fee is too low to get into empty block
-      # TODO:
-    catch
-      :break -> false
-    end
-  end
+  #     if sum_outputs > sum_inputs, do: throw(:break)
 
-  # TODO: remove transaction as a parameter.
-  defp verify_input(input, transaction, chain) do
-    try do
-      Enum.each(chain, fn block ->
-        if Block.contains?(block, input) do
-          output =
-            Map.get(block, :txns)
-            |> Enum.flat_map(fn tx -> Map.get(tx, :outputs) end)
-            |> Enum.find(fn txo ->
-              Map.get(txo, :tx_id) == Map.get(input, :tx_id) and
-                Map.get(txo, :output_index) == Map.get(input, :output_index)
-            end)
+  #     # 9. reject if transaction fee is too low to get into empty block
+  #     # TODO:
+  #   catch
+  #     :break -> false
+  #   end
+  # end
 
-          if !is_nil(output) do
-            # 7. verify unlocking script validates against locking scripts.
-            script =
-              ScriptUtil.join(Map.get(input, :unlocking_script), Map.get(output, :locking_script))
+  # defp verify_input(input, referenced_outputs, chain) do
+  #   try do
+  #     # 7. verify unlocking script validates against locking scripts.
+  #     script =
+  #       ScriptUtil.join(
+  #         Map.get(input, :unlocking_script),
+  #         Map.get(referenced_outputs, :locking_script)
+  #       )
 
-            if !ScriptUtil.valid?(script),
-              do: throw({:break, false})
+  #     if !ScriptUtil.valid?(script),
+  #       do: throw({:break, false})
 
-            # 6. verify for each input, referenced output is unspent
-            sub_chain =
-              Chain.get_blocks(chain, fn b ->
-                Block.get_attr(b, :height) > Block.get_attr(block, :height)
-              end)
+  #     # 6. verify for each input, referenced output is unspent
+  #     if !Transaction.unspent_output?(referenced_outputs, chain),
+  #       do: throw({:break, false})
 
-            if !Transaction.unspent_output?(output, sub_chain),
-              do: throw({:break, false})
-
-            throw({:break, true})
-          end
-        end
-      end)
-
-      # 5. verify for each input, referenced output exists.
-      # referenced transaction output not found
-      # add to orphan pool
-      send(self(), {:orphan_transaction, transaction})
-      false
-    catch
-      {:break, result} ->
-        result
-    end
-  end
+  #     throw({:break, true})
+  #   catch
+  #     {:break, result} ->
+  #       result
+  #   end
+  # end
 end
