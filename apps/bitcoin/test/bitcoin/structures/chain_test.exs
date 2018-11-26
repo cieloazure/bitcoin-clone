@@ -3,6 +3,54 @@ defmodule Bitcoin.Structures.ChainTest do
   alias Bitcoin.Structures.{Chain, Block}
   import Bitcoin.Utilities.Crypto
 
+  describe "new_chain" do
+    test "when the genesis block is provided it will return a list with genesis block" do
+      genesis_block = Block.create_candidate_genesis_block()
+      chain =  Chain.new_chain(genesis_block)
+      assert chain == [genesis_block]
+    end
+
+    test "when genesis block is not provided it will return a empty list" do
+      assert Chain.new_chain() == []
+    end
+  end
+
+  describe "top" do
+    test "when more than one blocks are present it should return the block with maximum height" do
+      genesis_block = Block.create_candidate_genesis_block()
+      chain = Chain.new_chain(genesis_block)
+      block = Block.create_candidate_block([], chain)
+      chain = [block | chain]
+      block = %Bitcoin.Schemas.Block{block | height: 2}
+      chain = [block | chain]
+      top_block = Chain.top(chain)
+      assert Block.get_attr(top_block, :height) == 2
+    end
+  end
+
+  describe "save" do
+    test "when given a block it will save it in the chain" do
+      genesis_block = Block.create_candidate_genesis_block()
+      chain = Chain.new_chain(genesis_block)
+      block = Block.create_candidate_block([], chain)
+      chain = Chain.save(chain, block)
+      assert chain == [block, genesis_block]
+    end
+  end
+
+  describe "sort" do
+    test "when given multiple block it will sort them according to height" do
+      genesis_block = Block.create_candidate_genesis_block()
+      chain = Chain.new_chain(genesis_block)
+      block = Block.create_candidate_block([], chain)
+      chain = [block | chain]
+      block = %Bitcoin.Schemas.Block{block | height: 2}
+      chain = [block | chain]
+      chain = Chain.sort(chain, :height)
+      assert Enum.map(chain, &Block.get_attr(&1, :height)) == [0,1,2]
+    end
+  end
+
   describe "fork" do
     test "correctly forks a lists" do
       chain = create_chain([], 6, nil, 0)
