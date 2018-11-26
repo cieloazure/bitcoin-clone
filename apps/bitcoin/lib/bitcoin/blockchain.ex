@@ -65,16 +65,31 @@ defmodule Bitcoin.Blockchain do
     {:ok, {node, {chain, forks, orphans}}}
   end
 
+  @doc """
+  Get the top most block of the chain
+
+  Returns the top most block of the chain
+  """
   @impl true
   def handle_call({:top_block}, _from, {_node, {chain, _forks, _orphans}} = state) do
     {:reply, Chain.top(chain), state}
   end
 
+  @doc """
+  Get the main chain of the blockchain
+
+  Returns the blockchain
+  """
   @impl true
   def handle_call({:get_chain}, _from, {_node, {chain, _forks, _orphans}} = state) do
     {:reply, chain, state}
   end
 
+  @doc """
+  Sets the main chain of the blockchain
+
+  Useful for testing
+  """
   @impl true
   def handle_call({:set_chain, new_chain}, _from, {node, {chain, forks, orphans}}) do
     {:reply, :ok, {node, {new_chain, forks, orphans}}}
@@ -101,7 +116,7 @@ defmodule Bitcoin.Blockchain do
 
         :new_block_found ->
           {new_chain, new_forks, new_orphans} =
-            new_block_found(payload, node, {chain, forks, orphans})
+            new_block_found(payload, {chain, forks, orphans})
 
           if length(new_chain) > length(chain) do
             Bitcoin.Node.start_mining(node, new_chain)
@@ -150,12 +165,22 @@ defmodule Bitcoin.Blockchain do
     Chain.save(chain, blocks)
   end
 
-  defp new_block_found(payload, node, {chain, forks, orphans}) do
+  # new_block_found
+  #
+  # Handles what to do in case a new block is found. It may either add it to
+  # the main chain or forks or orphans. Also, orphans may reduce.
+  #
+  # Arguments:
+  #   * payload -> includes the new block
+  defp new_block_found(payload, {chain, forks, orphans}) do
     new_block = payload
 
     if Block.valid?(new_block, chain) do
+      # Find the location of the block and what's the condition in which it
+      # exists for further processing
       {location, condition} = find_block(new_block, {chain, forks})
 
+      # Handle different condition
       case {location, condition} do
         {:in_chain, :at_top} ->
           new_chain = [new_block | chain]
@@ -221,6 +246,18 @@ defmodule Bitcoin.Blockchain do
     end
   end
 
+  # find_block
+  #
+  # Accepts the block and the current chain and forks list as arguments
+  #
+  # Returns the condition location in which the block is found which may be
+  # `:in_chain` or `:in_fork` or `:in_orphan`
+  #
+  # Also returns the condition of the new block which may be 
+  # `:at_top` -> No forks present, New block will go in main chain
+  # `:with_fork` -> A fork is present. New block will go in a fork
+  # `:fork_index` -> Present in already fork block. New block will go in a fork
+  #  It may consolidate to main chain
   defp find_block(block, {chain, forks}) do
     prev_hash = Block.get_header_attr(block, :prev_block_hash)
 
@@ -257,6 +294,12 @@ defmodule Bitcoin.Blockchain do
     end
   end
 
+  # consolidate_orphans_in_forks
+  #
+  # When a new block comes in, it may be the parent of the orphan block
+  # This is function to remove the block from orphan and put it in the forks
+  #
+  # Returns the updated forks and orphans
   defp consolidate_orphans_in_forks(forks, orphans) when length(orphans) > 0 do
     Enum.map_reduce(forks, orphans, fn fork_list, orphans ->
       consolidate_orphans(fork_list, orphans)
@@ -267,6 +310,13 @@ defmodule Bitcoin.Blockchain do
     {forks, orphans}
   end
 
+  # consolidate_orphans
+  #
+  # When a new block comes in, it may be the parent of the orphan in the main
+  # branch. This function will remove the node from orphans and put them in the
+  # main chain
+  # 
+  # Returns the updated chain and orphans 
   defp consolidate_orphans(chain, orphans) when length(orphans) > 0 do
     # any of the orphans
     {no_more_orphans, still_orphans} =
