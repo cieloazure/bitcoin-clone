@@ -189,7 +189,7 @@ defmodule Bitcoin.BlockchainTest do
       {_, {chain_after, forks_after, _}} = :sys.get_state(blockchain)
       assert !Enum.empty?(forks_after)
       assert length(chain_after) < length(chain_before)
-      #Process.sleep(1000000)
+      # Process.sleep(1000000)
     end
 
     test "the new block belongs in one of the forks, hence extending the fork, the forks are not of equal length, hence confirming the main chain by using the extended fork" do
@@ -324,18 +324,17 @@ defmodule Bitcoin.BlockchainTest do
       block4 = Bitcoin.Structures.Block.create_candidate_block([], chain)
       mined_block4 = Bitcoin.Mining.initiate_mining(block4)
       new_chain = [mined_block4 | chain]
-      #send(blockchain, {:handle_message, :new_block_found, mined_block4})
+      # send(blockchain, {:handle_message, :new_block_found, mined_block4})
 
       block5 = Bitcoin.Structures.Block.create_candidate_block([], new_chain)
       mined_block5 = Bitcoin.Mining.initiate_mining(block5)
       new_chain = [mined_block5 | new_chain]
       Bitcoin.Blockchain.set_chain(blockchain, new_chain)
-      #send(blockchain, {:handle_message, :new_block_found, mined_block5})
-
+      # send(blockchain, {:handle_message, :new_block_found, mined_block5})
 
       block4_2 = Bitcoin.Structures.Block.create_candidate_block([], chain)
       mined_block4_2 = Bitcoin.Mining.initiate_mining(block4_2)
-      #send(blockchain, {:handle_message, :new_block_found, mined_block4_2})
+      # send(blockchain, {:handle_message, :new_block_found, mined_block4_2})
       new_chain_2 = [mined_block4_2 | chain]
 
       block5_2 = Bitcoin.Structures.Block.create_candidate_block([], new_chain_2)
@@ -345,7 +344,6 @@ defmodule Bitcoin.BlockchainTest do
       {_, {chain, forks, orphans}} = :sys.get_state(blockchain)
       assert Enum.empty?(forks)
       assert !Enum.empty?(orphans)
-
 
       send(blockchain, {:handle_message, :new_block_found, mined_block4_2})
       {_, {chain, forks, orphans}} = :sys.get_state(blockchain)

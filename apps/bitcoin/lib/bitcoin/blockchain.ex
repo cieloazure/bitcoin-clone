@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Blockchain do
   @moduledoc """
   Bitcoin.Blockchain
@@ -75,11 +73,6 @@ defmodule Bitcoin.Blockchain do
   @impl true
   def handle_call({:get_chain}, _from, {_node, {chain, _forks, _orphans}} = state) do
     {:reply, chain, state}
-  end
-
-  @impl true
-  def handle_call({:change_node, new_node}, _from, {_node, {chain, forks, orphans}}) do
-    {:reply, :ok, {new_node, {chain, forks, orphans}}}
   end
 
   @impl true
@@ -172,23 +165,24 @@ defmodule Bitcoin.Blockchain do
         {:in_chain, :with_fork} ->
           {chain, forks} = Chain.fork(chain, new_block)
 
-          {chain, forks, orphans} = 
-            # Are there any orphans that can resolve the fork?
-          if !Enum.empty?(orphans) do
-            {forks, new_orphans} = consolidate_orphans_in_forks(forks, orphans)
-            fork_length = List.first(forks) |> length
+          # Are there any orphans that can resolve the fork?
+          {chain, forks, orphans} =
+            if !Enum.empty?(orphans) do
+              {forks, new_orphans} = consolidate_orphans_in_forks(forks, orphans)
+              fork_length = List.first(forks) |> length
 
-            {new_chain, forks} =
-              if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
-                max_fork = Enum.max_by(forks, &length(&1))
-                {max_fork ++ chain, []}
-              else
-                {chain, forks}
-              end
-            {new_chain, forks, new_orphans}
-          else
-            {chain, forks, orphans}
-          end
+              {new_chain, forks} =
+                if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
+                  max_fork = Enum.max_by(forks, &length(&1))
+                  {max_fork ++ chain, []}
+                else
+                  {chain, forks}
+                end
+
+              {new_chain, forks, new_orphans}
+            else
+              {chain, forks, orphans}
+            end
 
           {chain, forks, orphans}
 
