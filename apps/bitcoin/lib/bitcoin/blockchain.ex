@@ -172,14 +172,31 @@ defmodule Bitcoin.Blockchain do
         {:in_chain, :with_fork} ->
           {chain, forks} = Chain.fork(chain, new_block)
           {forks, orphans} = consolidate_orphans_in_forks(forks, orphans)
-          {chain, forks, orphans}
+          fork_length = List.first(forks) |> length
+
+          {new_chain, forks} =
+            if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
+              max_fork = Enum.max_by(forks, &length(&1))
+              {max_fork ++ chain, []}
+            else
+              {chain, forks}
+            end
+
+          {new_chain, forks, orphans}
 
         {:in_fork, fork_index} ->
           fork = Enum.at(forks, fork_index)
           extended_fork = [new_block | fork]
-          fork_length = length(extended_fork)
           forks = List.replace_at(forks, fork_index, extended_fork)
 
+          {forks, orphans} =
+            if length(forks) > 0 do
+              consolidate_orphans_in_forks(forks, orphans)
+            else
+              {forks, orphans}
+            end
+
+          fork_length = List.first(forks) |> length
           # If all forks are of equal length
           # we can't make an assumption about the main chain at the moment
           # Wait for another block
@@ -189,13 +206,6 @@ defmodule Bitcoin.Blockchain do
               {max_fork ++ chain, []}
             else
               {chain, forks}
-            end
-
-          {forks, orphans} =
-            if length(forks) > 0 do
-              consolidate_orphans_in_forks(forks, orphans)
-            else
-              {forks, orphans}
             end
 
           {new_chain, orphans} = consolidate_orphans(new_chain, orphans)
@@ -245,13 +255,17 @@ defmodule Bitcoin.Blockchain do
     end
   end
 
-  defp consolidate_orphans_in_forks(forks, orphans) do
+  defp consolidate_orphans_in_forks(forks, orphans) when length(orphans) > 0 do
     Enum.map_reduce(forks, orphans, fn fork_list, orphans ->
       consolidate_orphans(fork_list, orphans)
     end)
   end
 
-  defp consolidate_orphans(chain, orphans) do
+  defp consolidate_orphans_in_forks(forks, orphans) do
+    {forks, orphans}
+  end
+
+  defp consolidate_orphans(chain, orphans) when length(orphans) > 0 do
     # any of the orphans
     {no_more_orphans, still_orphans} =
       Enum.split_with(orphans, fn orphan ->
@@ -267,5 +281,9 @@ defmodule Bitcoin.Blockchain do
       end)
 
     {chain ++ no_more_orphans, still_orphans}
+  end
+
+  defp consolidate_orphans(chain, orphans) do
+    {chain, orphans}
   end
 end

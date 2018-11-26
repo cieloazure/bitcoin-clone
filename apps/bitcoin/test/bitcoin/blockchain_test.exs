@@ -179,13 +179,13 @@ defmodule Bitcoin.BlockchainTest do
       chain = create_chain([], 6, nil, 0)
       Bitcoin.Blockchain.set_chain(blockchain, chain)
       {_, {chain_before, forks_before, _}} = :sys.get_state(blockchain)
-      assert length(forks_before) == 0
+      assert Enum.empty?(forks_before)
       redundant_chain = Enum.reverse(chain_before) |> Enum.take(4)
       block1 = Bitcoin.Structures.Block.create_candidate_block([], redundant_chain)
       mined_block1 = Bitcoin.Mining.initiate_mining(block1)
       send(blockchain, {:handle_message, :new_block_found, mined_block1})
       {_, {chain_after, forks_after, _}} = :sys.get_state(blockchain)
-      assert length(forks_after) != 0
+      assert !Enum.empty?(forks_after)
       assert length(chain_after) < length(chain_before)
     end
 
@@ -202,13 +202,13 @@ defmodule Bitcoin.BlockchainTest do
       chain = create_chain([], 6, nil, 0)
       Bitcoin.Blockchain.set_chain(blockchain, chain)
       {_, {chain_before, forks_before, _}} = :sys.get_state(blockchain)
-      assert length(forks_before) == 0
+      assert Enum.empty?(forks_before)
       redundant_chain = Enum.reverse(chain_before) |> Enum.take(4)
       block1 = Bitcoin.Structures.Block.create_candidate_block([], redundant_chain)
       mined_block1 = Bitcoin.Mining.initiate_mining(block1)
       send(blockchain, {:handle_message, :new_block_found, mined_block1})
       {_, {chain_after, forks_after, _}} = :sys.get_state(blockchain)
-      assert length(forks_after) != 0
+      assert !Enum.empty?(forks_after)
       assert length(chain_after) < length(chain_before)
 
       new_redundant_chain = [block1 | redundant_chain]
@@ -218,7 +218,7 @@ defmodule Bitcoin.BlockchainTest do
       send(blockchain, {:handle_message, :new_block_found, mined_block2})
       {_, {chain_after_2, forks_after_2, _}} = :sys.get_state(blockchain)
       assert length(chain_after_2) > length(chain_before)
-      assert length(forks_after_2) == 0
+      assert Enum.empty?(forks_after_2)
     end
 
     test "the new block belongs in one of the forks, hence extending the fork, the forks are of equal length, hence main chain will not be extended however forks will be extended" do
@@ -263,13 +263,13 @@ defmodule Bitcoin.BlockchainTest do
       chain = create_chain([], 6, nil, 0)
       Bitcoin.Blockchain.set_chain(blockchain, Enum.reverse(chain) |> Enum.take(4))
       {_, {chain_before, forks_before, orphan_before}} = :sys.get_state(blockchain)
-      assert length(orphan_before) == 0
+      assert Enum.empty?(orphan_before)
 
       block1 = Bitcoin.Structures.Block.create_candidate_block([], chain)
       mined_block1 = Bitcoin.Mining.initiate_mining(block1)
       send(blockchain, {:handle_message, :new_block_found, mined_block1})
       {_, {chain_after, forks_after, orphan_after}} = :sys.get_state(blockchain)
-      assert length(orphan_after) != 0
+      assert !Enum.empty?(orphan_after)
     end
 
     test "the new block is the parent of one of the orphan block and is in the main chain" do
@@ -298,14 +298,56 @@ defmodule Bitcoin.BlockchainTest do
       mined_block3 = Bitcoin.Mining.initiate_mining(block3)
       send(blockchain, {:handle_message, :new_block_found, mined_block3})
       {_, {chain_before, forks_before, orphan_before}} = :sys.get_state(blockchain)
-      assert length(orphan_before) != 0
+      assert !Enum.empty?(orphan_before)
 
       send(blockchain, {:handle_message, :new_block_found, mined_block2})
       {_, {chain_after, forks_after, orphan_after}} = :sys.get_state(blockchain)
-      assert length(orphan_after) == 0
+      assert Enum.empty?(orphan_after)
     end
 
     test "the new block is the parent of one of the orphan and is in one of the forks" do
+      {:ok, seed} = SeedServer.start_link([])
+      genesis_block = Block.create_candidate_genesis_block()
+      genesis_block = Bitcoin.Mining.initiate_mining(genesis_block)
+
+      {:ok, node} =
+        Bitcoin.Node.start_link(ip_addr: "192.168.0.1", seed: seed, genesis_block: genesis_block)
+
+      blockchain = :sys.get_state(node)[:blockchain]
+
+      chain = create_chain([], 4, nil, 0)
+      Bitcoin.Blockchain.set_chain(blockchain, chain)
+
+      block4 = Bitcoin.Structures.Block.create_candidate_block([], chain)
+      mined_block4 = Bitcoin.Mining.initiate_mining(block4)
+      new_chain = [mined_block4 | chain]
+      #send(blockchain, {:handle_message, :new_block_found, mined_block4})
+
+      block5 = Bitcoin.Structures.Block.create_candidate_block([], new_chain)
+      mined_block5 = Bitcoin.Mining.initiate_mining(block5)
+      new_chain = [mined_block5 | new_chain]
+      Bitcoin.Blockchain.set_chain(blockchain, new_chain)
+      #send(blockchain, {:handle_message, :new_block_found, mined_block5})
+
+
+      block4_2 = Bitcoin.Structures.Block.create_candidate_block([], chain)
+      mined_block4_2 = Bitcoin.Mining.initiate_mining(block4_2)
+      #send(blockchain, {:handle_message, :new_block_found, mined_block4_2})
+      new_chain_2 = [mined_block4_2 | chain]
+
+      block5_2 = Bitcoin.Structures.Block.create_candidate_block([], new_chain_2)
+      mined_block5_2 = Bitcoin.Mining.initiate_mining(block5_2)
+      new_chain_3 = [mined_block5_2 | new_chain_2]
+      send(blockchain, {:handle_message, :new_block_found, mined_block5_2})
+      {_, {chain, forks, orphans}} = :sys.get_state(blockchain)
+      assert Enum.empty?(forks)
+      assert !Enum.empty?(orphans)
+
+
+      send(blockchain, {:handle_message, :new_block_found, mined_block4_2})
+      {_, {chain, forks, orphans}} = :sys.get_state(blockchain)
+      assert !Enum.empty?(forks)
+      assert Enum.empty?(orphans)
     end
   end
 
