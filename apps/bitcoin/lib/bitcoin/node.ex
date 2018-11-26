@@ -89,6 +89,10 @@ defmodule Bitcoin.Node do
   end
 
   @doc """
+  Bitcoin.Node.handle_cast for `:start_mining`
+
+  This callback will start mining for a new block based on existing chain. It will also 
+  terminate any previous mining process and restart a new process based on new updated chain
   """
   @impl true
   def handle_cast({:start_mining, given_chain}, state) do
@@ -118,6 +122,8 @@ defmodule Bitcoin.Node do
 
   @doc """
   Callback to handle when a new block is found
+
+  Will broadcast the block to it's peers
   """
   @impl true
   def handle_cast({:new_block_found, new_block}, state) do
@@ -136,6 +142,9 @@ defmodule Bitcoin.Node do
     {:noreply, state}
   end
 
+  @doc """
+  Handling messages from the tasks
+  """
   @impl true
   def handle_info(_, state) do
     {:noreply, state}
