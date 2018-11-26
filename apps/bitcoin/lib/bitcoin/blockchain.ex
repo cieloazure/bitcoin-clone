@@ -171,18 +171,26 @@ defmodule Bitcoin.Blockchain do
 
         {:in_chain, :with_fork} ->
           {chain, forks} = Chain.fork(chain, new_block)
-          {forks, orphans} = consolidate_orphans_in_forks(forks, orphans)
-          fork_length = List.first(forks) |> length
 
-          {new_chain, forks} =
-            if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
-              max_fork = Enum.max_by(forks, &length(&1))
-              {max_fork ++ chain, []}
-            else
-              {chain, forks}
-            end
+          {chain, forks, orphans} = 
+            # Are there any orphans that can resolve the fork?
+          if !Enum.empty?(orphans) do
+            {forks, new_orphans} = consolidate_orphans_in_forks(forks, orphans)
+            fork_length = List.first(forks) |> length
 
-          {new_chain, forks, orphans}
+            {new_chain, forks} =
+              if !Enum.all?(forks, fn fork -> length(fork) == fork_length end) do
+                max_fork = Enum.max_by(forks, &length(&1))
+                {max_fork ++ chain, []}
+              else
+                {chain, forks}
+              end
+            {new_chain, forks, new_orphans}
+          else
+            {chain, forks, orphans}
+          end
+
+          {chain, forks, orphans}
 
         {:in_fork, fork_index} ->
           fork = Enum.at(forks, fork_index)
