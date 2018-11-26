@@ -25,7 +25,7 @@ defmodule Bitcoin.Structures.TransactionTest do
     test "valid transaction" do
       chain = get_chain()
       assert Bitcoin.Schemas.Transaction.valid?(tx5())
-      assert Transaction.valid?(tx5(), chain, [])
+      assert Transaction.valid?(tx5(), chain, [], nil)
     end
   end
 
@@ -33,25 +33,25 @@ defmodule Bitcoin.Structures.TransactionTest do
     test "duplicate transaction exists in chain" do
       chain = get_chain()
       assert Bitcoin.Schemas.Transaction.valid?(tx4())
-      assert !Transaction.valid?(tx4(), chain, [])
+      assert !Transaction.valid?(tx4(), chain, [], nil)
     end
 
     test "duplicate transaction exists in pool" do
       chain = get_chain()
       assert Bitcoin.Schemas.Transaction.valid?(tx5())
-      assert !Transaction.valid?(tx5(), chain, [tx5()])
+      assert !Transaction.valid?(tx5(), chain, [tx5()], nil)
     end
 
     test "reusing spent transaction input" do
       chain = get_chain()
       assert Bitcoin.Schemas.Transaction.valid?(inv_tx1())
-      assert !Transaction.valid?(inv_tx1(), chain, [])
+      assert !Transaction.valid?(inv_tx1(), chain, [], nil)
     end
 
     test "incorrect unlocking script" do
       chain = get_chain()
       assert Bitcoin.Schemas.Transaction.valid?(inv_tx2())
-      assert !Transaction.valid?(inv_tx2(), chain, [])
+      assert !Transaction.valid?(inv_tx2(), chain, [], nil)
     end
   end
 end
