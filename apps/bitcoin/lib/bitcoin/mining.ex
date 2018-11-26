@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Mining do
   @moduledoc """
   Module for mining  and related methods
@@ -19,7 +17,7 @@ defmodule Bitcoin.Mining do
   """
   def initiate_mining(candidate_block) do
     target = Bitcoin.Structures.Block.calculate_target(candidate_block)
-    IO.inspect("Starting to mine....")
+    IO.inspect("Starting to mine....to reach target #{inspect(target)}")
     mine_block(candidate_block, target)
   end
 
@@ -30,6 +28,7 @@ defmodule Bitcoin.Mining do
   # Returns the mined block with the calculated nonce
   defp mine_block(candidate_block, target) do
     zeros_required = 32 - (String.trim_leading(target, <<0>>) |> byte_size)
+    zeros_required = if zeros_required < 0, do: 0, else: zeros_required
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
     nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
     # IO.inspect(nonce)
