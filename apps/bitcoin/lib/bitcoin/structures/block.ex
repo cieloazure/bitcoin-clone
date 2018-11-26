@@ -1,16 +1,19 @@
 defmodule Bitcoin.Structures.Block do
   use Bitwise
+  require Logger
   alias Bitcoin.Utilities.MerkleTree
   import Bitcoin.Utilities.Crypto
   import Bitcoin.Utilities.Conversions
 
   @coin 100_000_000
   @halving_interval 210_000
+
+  # Difficulty cannot exceed this number
   @proof_of_work_limit "1A0FFFFF"
 
   # Constants required to retarget a difficulty
   # In this case, the difficulty will be retargeted after
-  # every block
+  # every 10 blocks
   # It is also assumed that will take 1secs to generate a block
   # If the time required to produce one block is greater then the 
   # difficulty should increase else it should decrease
@@ -18,7 +21,9 @@ defmodule Bitcoin.Structures.Block do
   @expected_time_to_solve_one_block_in_secs 1
 
   @doc """
-  Create the candidate genesis block for the blockchain
+  Create the candidate genesis block for the blockchain. A genesis block is the first block in any blockchain.
+  The genesis block is usually mined separately from the rest of the blockchain and is hardcoded into the 
+  application using which every node initializes the blockchain.
 
   Arguments:
     * difficulty: 
@@ -29,6 +34,7 @@ defmodule Bitcoin.Structures.Block do
           by the blockchain creator, although anyone can do it. Creating a genesis
           block is the first in starting the blockchain. Any new nodes or chain will
           always have the genesis block as their first block.
+        - Has default value of - "<blockchain_creator/first_miner/satoshi_nakomoto>"
 
    Returns:
     * A genesis block which has not yet been mined. The block can be mined by calling
@@ -65,13 +71,20 @@ defmodule Bitcoin.Structures.Block do
 
   @doc """
   Create a candidate block for mining
+
+  Arguments:
+    * trasaction_pool: A List of transaction which have been heard by block up to this moment and to
+      be inserted into the block
+    * blockchain: A List of blocks using the reference of which the next candidate block is to be created
+    * recipient: The recipient of the reward from this block. The recipient is the one who is mining the block
+  Returns:
+    * A candidate block of to mine next
   """
   def create_candidate_block(
         transaction_pool,
         blockchain,
         recipient \\ "<bitcoin-address-from-wallet>"
-      ) do
-    # Get the top most block of the chain
+      ) when is_list(transaction_pool) and is_list(blockchain) do
     last_block = Bitcoin.Structures.Chain.top(blockchain)
     timestamp = DateTime.utc_now()
     height = get_attr(last_block, :height) + 1
@@ -120,6 +133,12 @@ defmodule Bitcoin.Structures.Block do
 
   @doc """
   Calculate the amount to be rewarded to the miner
+
+  Arguments: 
+    * height: Height of the block using which the block value is estimated
+    * fees: The fees to be collected from transactions
+  Returns:
+    * Value of the block which is to be amount in the coinbase transaction of the block
   """
   def get_block_value(height, fees) do
     subsidy = 50 * @coin
@@ -136,27 +155,47 @@ defmodule Bitcoin.Structures.Block do
   end
 
   @doc """
-  Get specific attribute of the block
+  Get specific attribute of the block. Can get any attribute of the block mention in the schema
+
+  Arguments:
+    * block: The block who's attribute is to be fetched
+    * attr: The attribute of the block required
+  Returns:
+    * The value of the attribute in the Block struct
   """
   def get_attr(block, _attr) when is_nil(block), do: nil
   def get_attr(block, attr), do: Map.get(block, attr)
 
   @doc """
   Get attribute of the block header
+
+  Arguments:
+    * block: The block who's header attribute is to be fetched
+    * attr: The header attribute of the block required
+  Returns:
+    * The value of the attribute in the Block struct
   """
   def get_header_attr(block, attr), do: get_attr(block, :block_header) |> get_attr(attr)
 
   @doc """
   Calculate the target value required for mining from bits field of the header
+
+  Arguments:
+    * block: The block who's target is to be calculated
   """
   def calculate_target(block) do
     bits = get_header_attr(block, :bits)
-    # IO.inspect("Calculate target: #{bits}")
     calculate_target_from_bits(bits)
   end
 
   @doc """
   Check the validity of the block
+
+  Argument:
+    * block: The block who's validity is to be checked
+    * chain: The current chain of the blockchain. Required to check for correctness of proof of work
+  Returns:
+    * Boolean value of `true` or `false` indicating whether the block is valid or not
   """
   def valid?(block, chain) do
     with true <- valid_fields?(block),
@@ -227,6 +266,12 @@ defmodule Bitcoin.Structures.Block do
   # The next target depends on how much time it takes for the block to mine
   # blocks in `retarget_difficulty_after_blockss` variable
   #
+  # Arugments accepted:
+  #   * last_block: The last block of the blockchain based on which the next
+  #   target is to be calculated
+  #   * blockchain: The chain in order to check whether difficulty is to be
+  #   retargeted
+  #
   # Returns the appropriate target for the block
   defp get_next_target(
          last_block,
@@ -253,9 +298,9 @@ defmodule Bitcoin.Structures.Block do
       # convert to secs
       time_difference = div(time_difference, trunc(:math.pow(10, 9)))
 
-      IO.puts("height: #{height}")
-      IO.puts("last 10th block height: #{inspect(get_attr(first_block, :height))}")
-      IO.puts("actual time diff: #{time_difference}")
+      Logger.info("height: #{height}")
+      Logger.info("last 10th block height: #{inspect(get_attr(first_block, :height))}")
+      Logger.info("actual time diff: #{time_difference}")
 
       modifier =
         get_modifier(
@@ -263,10 +308,8 @@ defmodule Bitcoin.Structures.Block do
           expected_time_to_solve_one_block_in_secs * retarget_difficulty_after_blocks
         )
 
-      IO.puts("modifier: #{inspect(modifier)}")
-      # Checking time difference
-      # Because, a time_difference of 0 will make the new_target 0
-      # And log of 0 will produce an error
+      Logger.info("modifier: #{inspect(modifier)}")
+
       target = calculate_target(last_block)
 
       # Calculate new target
@@ -280,15 +323,6 @@ defmodule Bitcoin.Structures.Block do
           new_target
         end
 
-      # new_target_bin = decimal_to_binary(new_target)
-
-      # new_target = if byte_size(new_target_bin) >= 32 do
-      # IEx.pry
-      # calculate_target_from_bits(@min_proof_of_work) |> binary_to_decimal
-      # else
-      # new_target
-      # end
-
       # Calculate the new bits string 
       calculate_bits_from_target(new_target)
     else
@@ -296,6 +330,12 @@ defmodule Bitcoin.Structures.Block do
     end
   end
 
+  # Get modifier for retargeting
+  #
+  # In order to avoid fluctuations the new target shouldn't change by more 
+  # than a factor of 4
+  #
+  # Returns the `modifier` to calculate new target with
   defp get_modifier(actual_timespan, target_timespan) do
     actual_timespan =
       cond do
@@ -365,6 +405,7 @@ defmodule Bitcoin.Structures.Block do
   end
 
   # Check for validity of the fields of the block
+  # The fields should be present and in correct datatype
   defp valid_fields?(block) do
     header = Map.get(block, :block_header)
     Bitcoin.Schemas.BlockHeader.valid?(header) and Bitcoin.Schemas.Block.valid?(block)
