@@ -47,7 +47,21 @@ defmodule Bitcoin.Structures.BlockTest do
       block1 = Bitcoin.Structures.Block.create_candidate_block([], chain)
       block1 = %Bitcoin.Schemas.Block{block1 | height: 10}
       Process.sleep(1000)
-      chain = [genesis_block, block1, block1, block1, block1,block1,block1, block1, block1, block1, block1]
+
+      chain = [
+        genesis_block,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1,
+        block1
+      ]
+
       block2 = Bitcoin.Structures.Block.create_candidate_block([], chain)
 
       assert Bitcoin.Structures.Block.get_header_attr(block2, :bits) !=
