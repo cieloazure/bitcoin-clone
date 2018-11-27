@@ -73,6 +73,9 @@ You can run the tests with coverage using the command:
 
 You can view the coverage details in the `cover/` directory 
 
+Functional test can be run with
+ `mix test test/bitcoin/functional_test.exs`
+
 ## Authors
 
 * **Pulkit Tripathi**
