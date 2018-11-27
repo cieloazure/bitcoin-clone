@@ -77,9 +77,16 @@ defmodule Bitcoin.NodeTest do
         genesis_block: mined_genesis_block,
         identifier: 2
       )
+    {:ok, node3} =
+      Bitcoin.Node.start_link(
+        ip_addr: "192.168.0.3",
+        seed: seed,
+        genesis_block: mined_genesis_block,
+        identifier: 3 
+      )
 
     Bitcoin.Node.start_mining(node1)
-    Process.sleep(100_000)
+    Process.sleep(10000)
   end
 
   test "update transaction pool" do
