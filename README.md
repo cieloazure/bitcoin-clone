@@ -153,6 +153,10 @@ Test case to check whether a transaction broadcast has taken place and the trans
 - Test cases for stack 
 - Test cases for scripting utility
 
+6. Functional test 
+
+A test case to check the simultaneous working of the mining and transactions processes. A simple scenario in which nodes are solving a mining problem and transactions are being broadcasted. 
+
 ## Authors
 
 * **Pulkit Tripathi**
