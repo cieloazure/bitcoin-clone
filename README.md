@@ -27,14 +27,25 @@ The goal of this project was to learn about internal workings of bitcoin and imp
     - Generated public key of the wallet based on Elliptic curve cryptography
       algorithm
     - Generated Base58Check encoded Bitcoin address using the public key
-    - Assists in creating new transactions by assimilation user's unspent
-      transaction outputs
+    - Assists in creating new transactions by accumulating user's unspent
+      transaction outputs from the block chain
 3. Transactions
-    - *TO BE ADDED*
+    - Creating transactions, using unspent transaction outputs form the block chain
+    - Broadcasting Transactions over a P2P chord network, providing support for transactions between multiple nodes.
+    - Maintaining and updating valid and orphan transaction pools while a block is being mined.
+    - Validate Transactions based on the following criteria:
+        - Structure and field values of transactions 
+        - Transaction is not a duplicate
+        - Transaction inputs and outs are unique and not empty
+        - For each input, referenced output exists. If not, put the transaction in orphan pool.
+        - For each input, referenced output is unspent.
+        - Inputs and outputs totals are between 0 and 21 million Btc
+        - Sum(inputs) > sum(outputs). difference is fees
+        - Unlocking script of Transaction inputs validate the locking scripts of corresponding referenced transaction outputs.
 
 #### Bonus features implemented
 1. Merkle tree for constructing the merkle root of the block header and getting a authentication path for a transaction in order to facilitate light weight nodes
-2. Bloom filter to filter out transactions in the blocks
+2. Bloom filter to filter out transactions in the blocks. Used in transaction validations and checking for unspent outputs
 3. Base58 and Base58Check encoding for Bitcoin Wallet's public address
 4. Validating the block for correctness
 5. Expressing the difficulty of the block in "compact form"
@@ -43,6 +54,7 @@ The goal of this project was to learn about internal workings of bitcoin and imp
 8. Implemented `Pay2PublicKeyHash` for  transactions in which we verify the
    signature of the recipient of the bitcoin using locking and unlocking  
    scripts. Can be extended to implement `Pay2PublicHash`, `Pay2ScriptHash`
+9. Forking Blockchains in case of receiving two or more blocks of same height.
 
 
 ### Getting Started
