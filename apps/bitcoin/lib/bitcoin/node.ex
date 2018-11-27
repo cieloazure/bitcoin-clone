@@ -4,6 +4,7 @@ defmodule Bitcoin.Node do
   """
   use GenServer
   alias Bitcoin.Structures.{Transaction, Block}
+  require Logger
 
   ###             ###
   ###             ###
@@ -155,7 +156,7 @@ defmodule Bitcoin.Node do
 
     tx_ins = Bitcoin.Structures.Transaction.get_required_inputs(utxo, amount)
 
-    transaction =
+    {:ok, transaction} =
       Bitcoin.Structures.Transaction.create_transaction(
         state[:wallet],
         recipient,
@@ -164,6 +165,7 @@ defmodule Bitcoin.Node do
         fees
       )
 
+    Logger.info("Created a new transaction...")
     # BROADCAST 
     # add transaction to this node's transaction pool
     state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
@@ -196,6 +198,7 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
+    Logger.info("Received a transaction.....")
     state =
       if Transaction.valid?(
            transaction,

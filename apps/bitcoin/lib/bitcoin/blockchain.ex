@@ -124,9 +124,8 @@ defmodule Bitcoin.Blockchain do
           {new_chain, new_forks, new_orphans}
 
         :new_transaction ->
-          # save_transaction
-          # broadcast_transaction
-          nil
+          send(node, {:new_transaction, payload})
+          {chain, forks, orphans}
       end
 
     {:noreply, {node, {chain, forks, orphans}}}
