@@ -48,6 +48,13 @@ defmodule Bitcoin.Node do
     GenServer.cast(node, {:transfer_money, recipient, amount, fees})
   end
 
+  @doc """
+  Get the public address of the node's wallet
+  """
+  def get_public_address(node) do
+    GenServer.call(node, {:get_public_address})
+  end
+
   ###                      ###
   ###                      ###
   ### GenServer Callbacks  ###
@@ -72,6 +79,9 @@ defmodule Bitcoin.Node do
     genesis_block = Keyword.get(opts, :genesis_block)
     wallet = Bitcoin.Wallet.init_wallet()
 
+    wallet = Keyword.get(opts, :wallet) || wallet
+
+
     {:ok, blockchain} =
       Bitcoin.Blockchain.start_link(
         genesis_block: genesis_block,
@@ -91,6 +101,13 @@ defmodule Bitcoin.Node do
        tx_pool: [],
        orphan_pool: []
      ]}
+  end
+
+  @doc """
+  Bitcoin.Node.handle_call for `:get_public_address`
+  """
+  def handle_call({:get_public_address}, _from, state) do
+    {:reply, state[:wallet][:address], state}
   end
 
   @doc """
@@ -123,16 +140,17 @@ defmodule Bitcoin.Node do
     # Start a new mining process
     chain = given_chain || Bitcoin.Blockchain.get_chain(state[:blockchain])
     # transaction_pool = Bitcoin.Transactions.get_transaction_pool()
-    transaction_pool = []
+    transaction_pool = state[:tx_pool]
 
     candidate_block =
       Bitcoin.Structures.Block.create_candidate_block(
         transaction_pool,
         chain,
-        state[:wallet][:bitcoin_address]
+        state[:wallet][:address]
       )
 
     task = Task.async(Bitcoin.Mining, :mine_async, [candidate_block, self()])
+    state = Keyword.put(state, :tx_pool, [])
     state = Keyword.put(state, :mining, task)
     # Bitcoin.Mining.mine_async(candidate_block, self())
     {:noreply, state}
@@ -145,6 +163,7 @@ defmodule Bitcoin.Node do
   """
   @impl true
   def handle_cast({:transfer_money, recipient, amount, fees}, state) do
+    require IEx;
     chain = Bitcoin.Blockchain.get_chain(state[:blockchain])
 
     utxo =

@@ -57,8 +57,12 @@ defmodule Bitcoin.NodeTest do
     alias Bitcoin.Structures.Block
     {:ok, seed} = SeedServer.start_link([])
 
+    wallet = Bitcoin.Wallet.init_wallet()
+
+    recipient = wallet[:address]
+
     candidate_genesis_block =
-      Bitcoin.Structures.Block.create_candidate_genesis_block("1EFFFFFF", "1akashbharatshingte")
+      Bitcoin.Structures.Block.create_candidate_genesis_block("1EFFFFFF", recipient)
 
     mined_genesis_block = Bitcoin.Mining.initiate_mining(candidate_genesis_block)
 
@@ -67,7 +71,8 @@ defmodule Bitcoin.NodeTest do
         ip_addr: "192.168.0.1",
         seed: seed,
         genesis_block: mined_genesis_block,
-        identifier: 1
+        identifier: 1,
+        wallet: wallet
       )
 
     {:ok, node2} =
@@ -77,6 +82,7 @@ defmodule Bitcoin.NodeTest do
         genesis_block: mined_genesis_block,
         identifier: 2
       )
+
     {:ok, node3} =
       Bitcoin.Node.start_link(
         ip_addr: "192.168.0.3",
@@ -85,8 +91,12 @@ defmodule Bitcoin.NodeTest do
         identifier: 3 
       )
 
+    address1 = Bitcoin.Node.get_public_address(node1)
+    address2 = Bitcoin.Node.get_public_address(node2)
+    Bitcoin.Node.transfer_money(node1, address2, 25, 0)
     Bitcoin.Node.start_mining(node1)
-    Process.sleep(10000)
+    Bitcoin.Node.start_mining(node2)
+    Process.sleep(100000)
   end
 
   test "update transaction pool" do

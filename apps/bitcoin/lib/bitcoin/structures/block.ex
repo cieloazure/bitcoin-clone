@@ -208,7 +208,8 @@ defmodule Bitcoin.Structures.Block do
   def valid?(block, chain) do
     with true <- valid_fields?(block),
          {_, is_genesis_block} <- valid_height?(block, chain),
-         true <- valid_proof_of_work?(block, chain, is_genesis_block) do
+         true <- valid_proof_of_work?(block, chain, is_genesis_block),
+         true <- valid_transactions?(block, chain) do
       true
     else
       false ->
@@ -437,5 +438,12 @@ defmodule Bitcoin.Structures.Block do
   defp valid_fields?(block) do
     header = Map.get(block, :block_header)
     Bitcoin.Schemas.BlockHeader.valid?(header) and Bitcoin.Schemas.Block.valid?(block)
+  end
+
+  # Check the validity of the transactions 
+  defp valid_transactions?(block, chain) do
+    !Enum.any?(get_attr(block, :txns), fn transaction -> 
+      Enum.any?(chain, fn block -> contains?(block, transaction) end)
+    end)
   end
 end
