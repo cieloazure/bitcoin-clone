@@ -53,41 +53,6 @@ defmodule Bitcoin.NodeTest do
              Bitcoin.Structures.Chain.sort([genesis_block | new_items], :height)
   end
 
-  test "functional test for mining competitition between two nodes" do
-    alias Bitcoin.Structures.Block
-    {:ok, seed} = SeedServer.start_link([])
-
-    candidate_genesis_block =
-      Bitcoin.Structures.Block.create_candidate_genesis_block("1EFFFFFF", "1akashbharatshingte")
-
-    mined_genesis_block = Bitcoin.Mining.initiate_mining(candidate_genesis_block)
-
-    {:ok, node1} =
-      Bitcoin.Node.start_link(
-        ip_addr: "192.168.0.1",
-        seed: seed,
-        genesis_block: mined_genesis_block,
-        identifier: 1
-      )
-
-    {:ok, node2} =
-      Bitcoin.Node.start_link(
-        ip_addr: "192.168.0.2",
-        seed: seed,
-        genesis_block: mined_genesis_block,
-        identifier: 2
-      )
-    {:ok, node3} =
-      Bitcoin.Node.start_link(
-        ip_addr: "192.168.0.3",
-        seed: seed,
-        genesis_block: mined_genesis_block,
-        identifier: 3 
-      )
-
-    Bitcoin.Node.start_mining(node1)
-    Process.sleep(10000)
-  end
 
   test "update transaction pool" do
     # :debugger.start()
