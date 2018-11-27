@@ -89,6 +89,70 @@ Functional tests can be executed using
 
 `mix test test/bitcoin/functional_test.exs`
 
+### Test cases description
+
+1. Blocks
+
+- Creating a candidate block correctly
+Test case to check whether the candidate block has correct data structure and all relevant fields are present. This test case checks whether a candidate block for mining can be obtained.
+
+
+- Calculating Target for the block
+Test case to check whether the target provided in the block data structure in terms of bits is being calculated correctly
+
+- Checking when to retarget for a block
+Test case to check if the retargeting of the block is taking place when a specific depth of the blockchain is reached
+
+- Checking the validity of the block
+Test case to check validity of the block which is based on - 
+    - Whether the data structure is valid
+    - Whether the target for the block has been reached
+
+2. Blockchain data structure
+
+- Creating a new instance of the blockchain
+- Adding blocks to block chain
+- Getting the top most block in a chain
+- Sorting the chain according to a given field. It may be timestamp or height
+- Forks a chain into to chains
+This test case checks that a correct forking of the chain takes place when a new block comes in which causes a fork
+
+3. Blockchain process
+
+- Sync operation of the blockchain with other peers
+- Operations to perform in the event of getting a new block:
+    - When a new block belongs in the main chain it will extend the main chain
+    - When a new block causes a fork in the main chain, it will create forks out of the main chain
+    - When a new block extends a fork, that fork will be the main chain now
+    - When a new block does not belong in either fork or main chain it is a orphan
+    - When a new block is a parent of one of the orphan
+    
+4. Mining process
+
+- Mining a block with lesser difficulty will take less time as compared to that with more difficulty. The difficulty increases exponentially
+
+5. Transaction Test
+
+- Creating a transaction
+Test case to create a new valid transaction according to the rules of valid transaction
+
+- Checking whether a transaction is correctly broadcasted
+Test case to check whether a transaction broadcast has taken place and the transaction is present in the transaction pool
+
+- Checking whether utxo required for a transaction are collected
+- Invalidating duplicate transactions
+- Checking whether reusing a spent transaction causes an error
+- Checking the unlocking script for the transaction which checks the signature of the transaction 
+
+5. Utilities test
+
+- Test cases for Bloom filters
+- Test cases for Conversions between number systems
+- Test cases for correct generation of keys in elliptic curve cryptography
+- Test cases for merkle tree
+- Test cases for stack 
+- Test cases for scripting utility
+
 ## Authors
 
 * **Pulkit Tripathi**
