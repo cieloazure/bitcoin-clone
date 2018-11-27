@@ -12,7 +12,6 @@ defmodule Bitcoin.Schemas.Block do
             merkle_tree: nil,
             bloom_filter: nil
 
-
   @doc """
   Check whether the block struct is valid
   """

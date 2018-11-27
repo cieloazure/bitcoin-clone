@@ -198,7 +198,6 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
-    IEx.pry
     state =
       if Transaction.valid?(
            transaction,
@@ -206,12 +205,14 @@ defmodule Bitcoin.Node do
            state[:tx_pool],
            self()
          ) do
-        IEx.pry
         state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
 
-        orphan_pool = update_orphan_pool(transaction, state[:orphan_pool])
+        {orphan_pool, accepted_txns} =
+          update_orphan_pool(transaction, state[:orphan_pool])
 
-        Keyword.put(state, :orphan_pool, orphan_pool)
+        state = Keyword.put(state, :orphan_pool, orphan_pool)
+        state = Keyword.put(state, :tx_pool, accepted_txns ++ state[:tx_pool])
+      # IEx.pry
       else
         state
       end
@@ -222,8 +223,13 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_info({:orphan_transaction, transaction, unreferenced_inputs}, state) do
     state =
-      if !Enum.any?(state[:orphan_pool], fn txn -> Map.equal?(txn, transaction) end),
-        do: Keyword.put(state, :orphan_pool, [transaction] ++ state[:tx_pool]),
+      if !Enum.any?(state[:orphan_pool], fn {txn, _unref_o} -> Map.equal?(txn, transaction) end),
+        do:
+          Keyword.put(
+            state,
+            :orphan_pool,
+            [{transaction, unreferenced_inputs}] ++ state[:orphan_pool]
+          ),
         else: state
 
     {:noreply, state}
@@ -236,7 +242,6 @@ defmodule Bitcoin.Node do
   def handle_info(_, state) do
     {:noreply, state}
   end
-
 
   ## PRIVATE METHODS ##
   defp update_orphan_pool(transaction, orphan_pool) do
@@ -254,13 +259,19 @@ defmodule Bitcoin.Node do
         end)
       end)
 
-    orphan_pool =
+    accepted_txns =
       if !is_nil(adopted) do
-        Enum.reject(orphan_pool, fn orphan -> 
+        Enum.filter(orphan_pool, fn {orphan, _unreferenced_input} ->
           Enum.any?(adopted, fn {tx, _unref_input} -> Map.equal?(tx, orphan) end)
         end)
       else
         orphan_pool
       end
+    
+    orphan_pool = orphan_pool -- accepted_txns
+
+    {accepted_txns, _referenced_inputs} = Enum.unzip(accepted_txns)
+    # IEx.pry
+    {orphan_pool, accepted_txns}
   end
 end

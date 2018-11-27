@@ -638,16 +638,16 @@ defmodule DummyData do
   end
 
   # incorrect unlocking script / not the authorized receiver of transaction_output.
-  # wallet2 trying to make transaction using utxo authorized for walltet3.
+  # wallet3 trying to make transaction using utxo authorized for walltet2.
   # def inv_tx2() do
   #   utxo =
-  #     tx5()
+  #     tx4()
   #     |> Map.get(:outputs)
   #     |> Enum.find(fn output -> Map.get(output, :output_index) == 1 end)
 
   #   recipient = wallet1() |> Keyword.get(:address)
 
-  #   {:ok, tx} = Transaction.create_transaction(wallet2(), recipient, [utxo], 2_000_000, 1000)
+  #   {:ok, tx} = Transaction.create_transaction(wallet3(), recipient, [utxo], 2_000_000, 1000)
   #   tx
   # end
   def inv_tx2() do
@@ -695,5 +695,60 @@ defmodule DummyData do
   end
 
   # ORPHAN TRANSACTIONS #
-  
+  # uses output from tx5(), which is not included in the blockchain as input.
+  # wallet2 trying to make transaction using utxo authorized for walltet3.
+  # def orphan_tx1() do
+  #   utxo =
+  #     tx5()
+  #     |> Map.get(:outputs)
+  #     |> Enum.find(fn output -> Map.get(output, :output_index) == 1 end)
+
+  #   recipient = wallet2() |> Keyword.get(:address)
+
+  #   {:ok, tx} = Transaction.create_transaction(wallet3(), recipient, [utxo], 10_000_000, 1000)
+  #   tx
+  # end
+  def orphan_tx1() do
+    %Bitcoin.Schemas.Transaction{
+      input_counter: 1,
+      inputs: [
+        %Bitcoin.Schemas.TransactionInput{
+          output_index: 1,
+          tx_id: "fc471076-f7be-493b-8ee5-30cefd47a2f3",
+          unlocking_script:
+            <<48, 69, 2, 32, 54, 159, 170, 98, 198, 113, 118, 29, 156, 125, 83, 178, 107, 59, 131,
+              250, 185, 231, 190, 201, 147, 64, 254, 42, 149, 107, 47, 195, 24, 159, 153, 185, 2,
+              33, 0, 228, 155, 31, 33, 78, 221, 128, 147, 61, 183, 79, 147, 183, 148, 229, 96, 94,
+              248, 49, 73, 41, 1, 73, 195, 129, 76, 37, 176, 117, 91, 70, 191, 32, 47, 32, 4, 54,
+              242, 148, 139, 242, 61, 52, 49, 170, 105, 107, 124, 13, 23, 73, 174, 51, 7, 48, 38,
+              200, 50, 237, 195, 63, 56, 122, 77, 226, 176, 171, 38, 66, 208, 40, 19, 159, 75,
+              213, 197, 10, 227, 232, 98, 73, 203, 19, 244, 251, 88, 185, 209, 130, 182, 249, 36,
+              28, 85, 165, 103, 201, 141, 139, 110>>,
+          unlocking_script_size: nil
+        }
+      ],
+      locktime: nil,
+      output_counter: 2,
+      outputs: [
+        %Bitcoin.Schemas.TransactionOutput{
+          address: nil,
+          amount: 10_000_000,
+          locking_script:
+            "DUP / HASH160 / BASE58CHECK / 1UcBoCZQB8FCwbFGPqsMwUFuJhRChg8iK6 / EQUALVERIFY / CHECKSIG",
+          output_index: 1,
+          tx_id: "3e567d90-5610-42a8-9590-d07e64c257d6"
+        },
+        %Bitcoin.Schemas.TransactionOutput{
+          address: nil,
+          amount: 1_989_999_000,
+          locking_script:
+            "DUP / HASH160 / BASE58CHECK / 1X5phXKrhLPWwhiFZSer5DHM7xJNFumKKA / EQUALVERIFY / CHECKSIG",
+          output_index: 2,
+          tx_id: "3e567d90-5610-42a8-9590-d07e64c257d6"
+        }
+      ],
+      tx_id: "3e567d90-5610-42a8-9590-d07e64c257d6",
+      version: nil
+    }
+  end
 end

@@ -88,7 +88,8 @@ defmodule Bitcoin.Structures.Block do
         transaction_pool,
         blockchain,
         recipient \\ "<bitcoin-address-from-wallet>"
-      ) when is_list(transaction_pool) and is_list(blockchain) do
+      )
+      when is_list(transaction_pool) and is_list(blockchain) do
     last_block = Bitcoin.Structures.Chain.top(blockchain)
     timestamp = DateTime.utc_now()
     height = get_attr(last_block, :height) + 1

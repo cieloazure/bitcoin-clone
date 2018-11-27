@@ -54,8 +54,6 @@ defmodule Bitcoin.Structures.Transaction do
   def create_transaction(wallet, recipient, utxo, amount, fees \\ 0) do
     tx_id = UUID.uuid4()
 
-    IEx.pry()
-
     tx_inputs =
       Enum.map(utxo, fn t ->
         %TransactionInput{
@@ -65,8 +63,6 @@ defmodule Bitcoin.Structures.Transaction do
             ScriptUtil.generate_unlocking_script(wallet[:private_key], wallet[:public_key])
         }
       end)
-
-    IEx.pry()
 
     tx_out = %TransactionOutput{
       tx_id: tx_id,
@@ -164,7 +160,6 @@ defmodule Bitcoin.Structures.Transaction do
 
       # Verify within the subchain whether tx_output has been used as a Transaction input
       Enum.each(subchain, fn block ->
-        # IEx.pry()
 
         tx_inputs =
           Map.get(block, :txns)
@@ -217,28 +212,23 @@ defmodule Bitcoin.Structures.Transaction do
     outputs = Map.get(transaction, :outputs)
 
     try do
-      # IEx.pry
       # 0. verify not a duplicate.
       if Enum.any?(chain, fn block -> Block.contains?(block, transaction) end) or
            Enum.any?(transaction_pool, fn txn -> Map.equal?(txn, transaction) end),
          do: throw(:break)
 
-      # IEx.pry
       # 1. verify structure
       if !Transaction.valid?(transaction),
         do: throw(:break)
 
-        # IEx.pry
       # 2. verify inputs and outputs are unique and not empty
       if Enum.empty?(inputs) or Enum.empty?(outputs),
         do: throw(:break)
 
-    # IEx.pry
       if length(Enum.dedup(inputs)) < length(inputs) or
            length(Enum.dedup(inputs)) < length(inputs),
          do: throw(:break)
 
-# IEx.pry
       # 3. verify for each input, referenced output exists.
       # If not, put in orphan pool if matching transaction doesn't already exist.
       if length(referenced_outputs) < length(inputs) do
@@ -249,14 +239,14 @@ defmodule Bitcoin.Structures.Transaction do
 
         throw(:break)
       end
-# IEx.pry
+
       # 4. verify inputs and outputs' totals are: 0 <= total < 21m
       if !(valid_total?(referenced_outputs) and valid_total?(outputs)),
         do: throw(:break)
 
       # 5. verify standard form of locking and unlocking scripts
       # TODO:
-# IEx.pry
+
       # 6. verify for each input, referenced output is unspent
       # 7. verify unlocking script validates against locking scripts.
       if !(Enum.zip(inputs, referenced_outputs)
@@ -264,7 +254,7 @@ defmodule Bitcoin.Structures.Transaction do
              valid_input?(input, referenced_output, chain)
            end)),
          do: throw(:break)
-# IEx.pry
+
       # 8. reject if sum(outputs) > sum(inputs)
       sum_inputs =
         Enum.reduce(referenced_outputs, 0, fn ref_out, acc -> Map.get(ref_out, :amount) + acc end)
@@ -275,7 +265,7 @@ defmodule Bitcoin.Structures.Transaction do
 
       # 9. reject if transaction fee is too low to get into empty block
       # TODO:
-# IEx.pry
+      
       # all checks valid
       true
     catch
