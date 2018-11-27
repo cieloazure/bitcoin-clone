@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Chord.Node do
   @moduledoc """
   Chord.Node
@@ -792,8 +790,8 @@ defmodule Chord.Node do
 
   @impl true
   def handle_info(msg, state) do
-    IO.inspect("unexpected message")
-    IO.inspect(msg)
+    # Logger.info("unexpected message")
+    # IO.inspect(msg)
     {:noreply, state}
   end
 

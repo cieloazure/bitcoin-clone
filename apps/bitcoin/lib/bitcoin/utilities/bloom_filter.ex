@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Utilities.BloomFilter do
   @moduledoc """
   BloomFilter implementation for quick probabilistic searches.

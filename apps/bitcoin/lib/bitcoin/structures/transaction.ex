@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Structures.Transaction do
   alias Bitcoin.Utilities.ScriptUtil
   alias Bitcoin.Structures.Block
@@ -265,7 +263,7 @@ defmodule Bitcoin.Structures.Transaction do
 
       # 9. reject if transaction fee is too low to get into empty block
       # TODO:
-      
+
       # all checks valid
       true
     catch

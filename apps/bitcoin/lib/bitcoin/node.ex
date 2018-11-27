@@ -1,11 +1,10 @@
-require IEx
-
 defmodule Bitcoin.Node do
   @moduledoc """
   A Bitcoin full node
   """
   use GenServer
   alias Bitcoin.Structures.{Transaction, Block}
+  require Logger
 
   ###             ###
   ###             ###
@@ -157,7 +156,7 @@ defmodule Bitcoin.Node do
 
     tx_ins = Bitcoin.Structures.Transaction.get_required_inputs(utxo, amount)
 
-    transaction =
+    {:ok, transaction} =
       Bitcoin.Structures.Transaction.create_transaction(
         state[:wallet],
         recipient,
@@ -166,6 +165,7 @@ defmodule Bitcoin.Node do
         fees
       )
 
+    Logger.info("Created a new transaction...")
     # BROADCAST 
     # add transaction to this node's transaction pool
     state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
@@ -198,6 +198,8 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
+
+    Logger.info("Received a transaction.....")
     state =
       if Transaction.valid?(
            transaction,
@@ -211,8 +213,7 @@ defmodule Bitcoin.Node do
           update_orphan_pool(transaction, state[:orphan_pool])
 
         state = Keyword.put(state, :orphan_pool, orphan_pool)
-        state = Keyword.put(state, :tx_pool, accepted_txns ++ state[:tx_pool])
-      # IEx.pry
+        Keyword.put(state, :tx_pool, accepted_txns ++ state[:tx_pool])
       else
         state
       end
@@ -250,7 +251,7 @@ defmodule Bitcoin.Node do
       |> Enum.map(fn output -> {Map.get(output, :tx_id), Map.get(output, :output_index)} end)
 
     adopted =
-      Enum.filter(orphan_pool, fn {orphan, unreferenced_inputs} ->
+      Enum.filter(orphan_pool, fn {_orphan, unreferenced_inputs} ->
         unreferenced_inputs
         |> Enum.all?(fn input ->
           Enum.any?(transaction_params, fn {tx_id, output_index} ->
@@ -271,7 +272,7 @@ defmodule Bitcoin.Node do
     orphan_pool = orphan_pool -- accepted_txns
 
     {accepted_txns, _referenced_inputs} = Enum.unzip(accepted_txns)
-    # IEx.pry
+    
     {orphan_pool, accepted_txns}
   end
 end
