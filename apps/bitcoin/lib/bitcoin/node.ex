@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Node do
   @moduledoc """
   A Bitcoin full node
@@ -198,7 +196,6 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
-    IEx.pry
     state =
       if Transaction.valid?(
            transaction,
@@ -206,7 +203,6 @@ defmodule Bitcoin.Node do
            state[:tx_pool],
            self()
          ) do
-        IEx.pry
         state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
 
         orphan_pool = update_orphan_pool(transaction, state[:orphan_pool])
@@ -237,7 +233,6 @@ defmodule Bitcoin.Node do
     {:noreply, state}
   end
 
-
   ## PRIVATE METHODS ##
   defp update_orphan_pool(transaction, orphan_pool) do
     transaction_params =
@@ -256,7 +251,7 @@ defmodule Bitcoin.Node do
 
     orphan_pool =
       if !is_nil(adopted) do
-        Enum.reject(orphan_pool, fn orphan -> 
+        Enum.reject(orphan_pool, fn orphan ->
           Enum.any?(adopted, fn {tx, _unref_input} -> Map.equal?(tx, orphan) end)
         end)
       else

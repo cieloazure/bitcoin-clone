@@ -695,5 +695,4 @@ defmodule DummyData do
   end
 
   # ORPHAN TRANSACTIONS #
-  
 end

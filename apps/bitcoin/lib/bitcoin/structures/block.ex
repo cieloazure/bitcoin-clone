@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.Structures.Block do
   use Bitwise
   alias Bitcoin.Utilities.{MerkleTree, BloomFilter}
@@ -88,7 +86,8 @@ defmodule Bitcoin.Structures.Block do
         transaction_pool,
         blockchain,
         recipient \\ "<bitcoin-address-from-wallet>"
-      ) when is_list(transaction_pool) and is_list(blockchain) do
+      )
+      when is_list(transaction_pool) and is_list(blockchain) do
     last_block = Bitcoin.Structures.Chain.top(blockchain)
     timestamp = DateTime.utc_now()
     height = get_attr(last_block, :height) + 1
@@ -193,6 +192,7 @@ defmodule Bitcoin.Structures.Block do
   """
   def calculate_target(block) do
     bits = get_header_attr(block, :bits)
+    Logger.info("Target bits are: #{bits}")
     calculate_target_from_bits(bits)
   end
 
@@ -338,7 +338,7 @@ defmodule Bitcoin.Structures.Block do
 
       Logger.info("modifier: #{inspect(modifier)}")
 
-      target = calculate_target(last_block)
+      target = calculate_target_from_bits(get_header_attr(last_block, :bits))
 
       # Calculate new target
       new_target = binary_to_decimal(target) * modifier

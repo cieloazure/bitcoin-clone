@@ -4,6 +4,7 @@ defmodule Bitcoin.Mining do
   """
   import Bitcoin.Utilities.Crypto
   import Bitcoin.Utilities.Conversions
+  require Logger
 
   def mine_async(candidate_block, bitcoin_node) do
     mined_block = initiate_mining(candidate_block)
@@ -17,7 +18,7 @@ defmodule Bitcoin.Mining do
   """
   def initiate_mining(candidate_block) do
     target = Bitcoin.Structures.Block.calculate_target(candidate_block)
-    IO.inspect("Starting to mine....to reach target #{inspect(target)}")
+    Logger.info("Starting to mine....to reach target #{inspect(target)}")
     mine_block(candidate_block, target)
   end
 
@@ -41,10 +42,10 @@ defmodule Bitcoin.Mining do
     v2 = binary_to_decimal(target)
 
     if zeros_obtained_header == zeros_obtained_target and v1 <= v2 do
-      IO.inspect("Done with mining....")
-      IO.inspect(hashed_value)
-      IO.inspect(target)
-      IO.inspect(nonce)
+      Logger.info("Done with mining....")
+      Logger.info(inspect(hashed_value))
+      Logger.info(inspect(target))
+      Logger.info(inspect(nonce))
       candidate_block
     else
       increment_nonce(candidate_block)

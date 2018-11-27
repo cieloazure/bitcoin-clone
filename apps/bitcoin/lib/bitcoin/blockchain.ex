@@ -115,8 +115,7 @@ defmodule Bitcoin.Blockchain do
           {new_chain, forks, orphans}
 
         :new_block_found ->
-          {new_chain, new_forks, new_orphans} =
-            new_block_found(payload, {chain, forks, orphans})
+          {new_chain, new_forks, new_orphans} = new_block_found(payload, {chain, forks, orphans})
 
           if length(new_chain) > length(chain) do
             Bitcoin.Node.start_mining(node, new_chain)

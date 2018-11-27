@@ -1,5 +1,3 @@
-require IEx
-
 defmodule Bitcoin.BlockchainTest do
   use ExUnit.Case
   alias Bitcoin.Structures.Block
