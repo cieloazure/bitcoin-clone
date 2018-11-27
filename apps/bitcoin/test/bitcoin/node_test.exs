@@ -91,11 +91,21 @@ defmodule Bitcoin.NodeTest do
         identifier: 3 
       )
 
-    address1 = Bitcoin.Node.get_public_address(node1)
-    address2 = Bitcoin.Node.get_public_address(node2)
-    Bitcoin.Node.transfer_money(node1, address2, 25, 0)
     Bitcoin.Node.start_mining(node1)
     Bitcoin.Node.start_mining(node2)
+    Bitcoin.Node.start_mining(node3)
+
+    address1 = Bitcoin.Node.get_public_address(node1)
+    address2 = Bitcoin.Node.get_public_address(node2)
+    address3 = Bitcoin.Node.get_public_address(node3)
+
+    Bitcoin.Node.transfer_money(node1, address2, 25, 0)
+    Process.sleep(2000)
+
+    Bitcoin.Node.transfer_money(node2, address1, 12.5, 0)
+    Process.sleep(2000)
+
+    Bitcoin.Node.transfer_money(node1, address3, 2500, 0)
     Process.sleep(100000)
   end
 
