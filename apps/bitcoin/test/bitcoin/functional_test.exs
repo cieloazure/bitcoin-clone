@@ -54,6 +54,6 @@ defmodule Bitcoin.FunctionalTest do
     Process.sleep(2000)
 
     Bitcoin.Node.transfer_money(node1, address3, 2500, 0)
-    Process.sleep(100000)
+    Process.sleep(10000)
   end
 end

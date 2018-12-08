@@ -3,7 +3,7 @@ defmodule Bitcoin.Node do
   A Bitcoin full node
   """
   use GenServer
-  alias Bitcoin.Structures.{Transaction, Block}
+  alias Bitcoin.Structures.Transaction
   require Logger
 
   ###             ###
@@ -106,6 +106,7 @@ defmodule Bitcoin.Node do
   @doc """
   Bitcoin.Node.handle_call for `:get_public_address`
   """
+  @impl true
   def handle_call({:get_public_address}, _from, state) do
     {:reply, state[:wallet][:address], state}
   end
@@ -133,7 +134,7 @@ defmodule Bitcoin.Node do
   def handle_cast({:start_mining, given_chain}, state) do
     # Kill previous mining process
     if !is_nil(state[:mining]) do
-      status = Task.shutdown(state[:mining])
+      _status = Task.shutdown(state[:mining])
       # IO.inspect(status)
     end
 
@@ -163,7 +164,6 @@ defmodule Bitcoin.Node do
   """
   @impl true
   def handle_cast({:transfer_money, recipient, amount, fees}, state) do
-    require IEx;
     chain = Bitcoin.Blockchain.get_chain(state[:blockchain])
 
     utxo =
@@ -184,12 +184,15 @@ defmodule Bitcoin.Node do
         fees
       )
 
-    Logger.info("Created a new transaction...")
+    IO.puts("Created a new transaction...")
     # BROADCAST 
     # add transaction to this node's transaction pool
     state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
     # Broadcast this transaction to other nodes
     Chord.broadcast(state[:chord_api], :new_transaction, transaction)
+
+    # send the event `new_transaction` to the interface
+    # How?
 
     {:noreply, state}
   end
@@ -201,6 +204,12 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_cast({:new_block_found, new_block}, state) do
     Chord.broadcast(state[:chord_api], :new_block_found, new_block)
+
+    # send the event `new_block_found` to the phoenix interface
+    # How?
+    # 1. Send a post request to the server
+    # 2. The server will push the event to all clients
+    
     {:noreply, state}
   end
 
@@ -217,7 +226,7 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
-    Logger.info("Received a transaction.....")
+    IO.puts("Received a transaction.....")
     state =
       if Transaction.valid?(
            transaction,
@@ -238,7 +247,7 @@ defmodule Bitcoin.Node do
   end
 
   @impl true
-  def handle_info({:orphan_transaction, transaction, unreferenced_inputs}, state) do
+  def handle_info({:orphan_transaction, transaction, _unreferenced_inputs}, state) do
     state =
       if !Enum.any?(state[:orphan_pool], fn txn -> Map.equal?(txn, transaction) end),
         do: Keyword.put(state, :orphan_pool, [transaction] ++ state[:tx_pool]),
@@ -262,7 +271,7 @@ defmodule Bitcoin.Node do
       |> Enum.map(fn output -> {Map.get(output, :tx_id), Map.get(output, :output_index)} end)
 
     adopted =
-      Enum.filter(orphan_pool, fn {orphan, unreferenced_inputs} ->
+      Enum.filter(orphan_pool, fn {_orphan, unreferenced_inputs} ->
         unreferenced_inputs
         |> Enum.all?(fn input ->
           Enum.any?(transaction_params, fn {tx_id, output_index} ->
@@ -271,7 +280,6 @@ defmodule Bitcoin.Node do
         end)
       end)
 
-    orphan_pool =
       if !is_nil(adopted) do
         Enum.reject(orphan_pool, fn orphan ->
           Enum.any?(adopted, fn {tx, _unref_input} -> Map.equal?(tx, orphan) end)
