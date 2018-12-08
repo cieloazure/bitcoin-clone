@@ -5,7 +5,9 @@ defmodule InterfaceWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_flash
-    plug :protect_from_forgery
+    # CSRF protection disabled.
+    # TODO: Find a workaround without disabling the CSRF protection
+    #plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
 
@@ -20,7 +22,7 @@ defmodule InterfaceWeb.Router do
 
     get "/simulation", SimulationController, :index
 
-    get "/event", SimulationController, :handle_event
+    post "/event", SimulationController, :handle_event
   end
 
   # Other scopes may use custom stacks.

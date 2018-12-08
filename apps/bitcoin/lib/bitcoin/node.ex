@@ -191,8 +191,8 @@ defmodule Bitcoin.Node do
     # Broadcast this transaction to other nodes
     Chord.broadcast(state[:chord_api], :new_transaction, transaction)
 
-    # send the event `new_transaction` to the interface
-    # How?
+    # Broadcast the event to all watching the simulation
+    Bitcoin.Utilities.EventGenerator.broadcast_event("new_transaction", transaction)
 
     {:noreply, state}
   end
@@ -205,10 +205,8 @@ defmodule Bitcoin.Node do
   def handle_cast({:new_block_found, new_block}, state) do
     Chord.broadcast(state[:chord_api], :new_block_found, new_block)
 
-    # send the event `new_block_found` to the phoenix interface
-    # How?
-    # 1. Send a post request to the server
-    # 2. The server will push the event to all clients
+    # Broadcast the event to all watching the simulation
+    Bitcoin.Utilities.EventGenerator.broadcast_event("new_block_found", new_block)
     
     {:noreply, state}
   end
@@ -271,7 +269,7 @@ defmodule Bitcoin.Node do
       |> Enum.map(fn output -> {Map.get(output, :tx_id), Map.get(output, :output_index)} end)
 
     adopted =
-      Enum.filter(orphan_pool, fn {_orphan, unreferenced_inputs} ->
+      Enum.filter(orphan_pool, fn {orphan, unreferenced_inputs} ->
         unreferenced_inputs
         |> Enum.all?(fn input ->
           Enum.any?(transaction_params, fn {tx_id, output_index} ->
