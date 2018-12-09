@@ -3,7 +3,7 @@ defmodule Bitcoin.Node do
   A Bitcoin full node
   """
   use GenServer
-  alias Bitcoin.Structures.{Transaction, Block}
+  alias Bitcoin.Structures.Transaction
   require Logger
 
   ###             ###
@@ -48,6 +48,13 @@ defmodule Bitcoin.Node do
     GenServer.cast(node, {:transfer_money, recipient, amount, fees})
   end
 
+  @doc """
+  Get the public address of the node's wallet
+  """
+  def get_public_address(node) do
+    GenServer.call(node, {:get_public_address})
+  end
+
   ###                      ###
   ###                      ###
   ### GenServer Callbacks  ###
@@ -72,6 +79,9 @@ defmodule Bitcoin.Node do
     genesis_block = Keyword.get(opts, :genesis_block)
     wallet = Bitcoin.Wallet.init_wallet()
 
+    wallet = Keyword.get(opts, :wallet) || wallet
+
+
     {:ok, blockchain} =
       Bitcoin.Blockchain.start_link(
         genesis_block: genesis_block,
@@ -91,6 +101,14 @@ defmodule Bitcoin.Node do
        tx_pool: [],
        orphan_pool: []
      ]}
+  end
+
+  @doc """
+  Bitcoin.Node.handle_call for `:get_public_address`
+  """
+  @impl true
+  def handle_call({:get_public_address}, _from, state) do
+    {:reply, state[:wallet][:address], state}
   end
 
   @doc """
@@ -116,23 +134,24 @@ defmodule Bitcoin.Node do
   def handle_cast({:start_mining, given_chain}, state) do
     # Kill previous mining process
     if !is_nil(state[:mining]) do
-      status = Task.shutdown(state[:mining])
+      _status = Task.shutdown(state[:mining])
       # IO.inspect(status)
     end
 
     # Start a new mining process
     chain = given_chain || Bitcoin.Blockchain.get_chain(state[:blockchain])
     # transaction_pool = Bitcoin.Transactions.get_transaction_pool()
-    transaction_pool = []
+    transaction_pool = state[:tx_pool]
 
     candidate_block =
       Bitcoin.Structures.Block.create_candidate_block(
         transaction_pool,
         chain,
-        state[:wallet][:bitcoin_address]
+        state[:wallet][:address]
       )
 
     task = Task.async(Bitcoin.Mining, :mine_async, [candidate_block, self()])
+    state = Keyword.put(state, :tx_pool, [])
     state = Keyword.put(state, :mining, task)
     # Bitcoin.Mining.mine_async(candidate_block, self())
     {:noreply, state}
@@ -165,12 +184,15 @@ defmodule Bitcoin.Node do
         fees
       )
 
-    Logger.info("Created a new transaction...")
+    IO.puts("Created a new transaction...")
     # BROADCAST 
     # add transaction to this node's transaction pool
     state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
     # Broadcast this transaction to other nodes
     Chord.broadcast(state[:chord_api], :new_transaction, transaction)
+
+    # Broadcast the event to all watching the simulation
+    Bitcoin.Utilities.EventGenerator.broadcast_event("new_transaction", transaction)
 
     {:noreply, state}
   end
@@ -182,6 +204,10 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_cast({:new_block_found, new_block}, state) do
     Chord.broadcast(state[:chord_api], :new_block_found, new_block)
+
+    # Broadcast the event to all watching the simulation
+    Bitcoin.Utilities.EventGenerator.broadcast_event("new_block_found", new_block)
+    
     {:noreply, state}
   end
 
@@ -198,8 +224,7 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
-
-    Logger.info("Received a transaction.....")
+    IO.puts("Received a transaction.....")
     state =
       if Transaction.valid?(
            transaction,
@@ -222,7 +247,7 @@ defmodule Bitcoin.Node do
   end
 
   @impl true
-  def handle_info({:orphan_transaction, transaction, unreferenced_inputs}, state) do
+  def handle_info({:orphan_transaction, transaction, _unreferenced_inputs}, state) do
     state =
       if !Enum.any?(state[:orphan_pool], fn {txn, _unref_o} -> Map.equal?(txn, transaction) end),
         do:

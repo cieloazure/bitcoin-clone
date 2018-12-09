@@ -2,13 +2,15 @@ defmodule Bitcoin.Wallet do
   @moduledoc """
   A module for managing a wallet
   """
-  alias Bitcoin.Structures.{Block, Chain, Transaction}
+  alias Bitcoin.Structures.{Transaction}
   alias Bitcoin.Utilities.{Keys, ScriptUtil}
+  require Logger
 
   @doc """
   Initialize the wallet variables
   """
   def init_wallet() do
+    Logger.info(fn -> "test" end)
     private_key = Keys.generate_private_key()
     public_key = Keys.to_public_key(private_key)
     address = Keys.to_public_address(private_key)

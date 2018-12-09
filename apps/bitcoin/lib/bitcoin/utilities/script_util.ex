@@ -1,5 +1,5 @@
 defmodule Bitcoin.Utilities.ScriptUtil do
-  alias Bitcoin.Utilities.{Stack, Keys, Crypto, Base58Check}
+  alias Bitcoin.Utilities.{Stack, Crypto, Base58Check}
 
   @doc """
   Generates locking script with given 'recipient'

@@ -91,7 +91,7 @@ defmodule Bitcoin.Blockchain do
   Useful for testing
   """
   @impl true
-  def handle_call({:set_chain, new_chain}, _from, {node, {chain, forks, orphans}}) do
+  def handle_call({:set_chain, new_chain}, _from, {node, {_chain, forks, orphans}}) do
     {:reply, :ok, {node, {new_chain, forks, orphans}}}
   end
 

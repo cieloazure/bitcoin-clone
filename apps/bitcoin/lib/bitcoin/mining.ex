@@ -4,6 +4,7 @@ defmodule Bitcoin.Mining do
   """
   import Bitcoin.Utilities.Crypto
   import Bitcoin.Utilities.Conversions
+  alias Bitcoin.Structures.Block
   require Logger
 
   def mine_async(candidate_block, bitcoin_node) do
@@ -18,7 +19,7 @@ defmodule Bitcoin.Mining do
   """
   def initiate_mining(candidate_block) do
     target = Bitcoin.Structures.Block.calculate_target(candidate_block)
-    Logger.info("Starting to mine....to reach target #{inspect(target)}")
+    #Logger.info("Starting to mine....to reach target #{inspect(target)}")
     mine_block(candidate_block, target)
   end
 
@@ -31,7 +32,7 @@ defmodule Bitcoin.Mining do
     zeros_required = 32 - (String.trim_leading(target, <<0>>) |> byte_size)
     zeros_required = if zeros_required < 0, do: 0, else: zeros_required
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
-    nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
+    # nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
     # IO.inspect(nonce)
 
     <<zeros_obtained_target::bytes-size(zeros_required), _::bits>> = target
@@ -42,10 +43,12 @@ defmodule Bitcoin.Mining do
     v2 = binary_to_decimal(target)
 
     if zeros_obtained_header == zeros_obtained_target and v1 <= v2 do
-      Logger.info("Done with mining....")
-      Logger.info(inspect(hashed_value))
-      Logger.info(inspect(target))
-      Logger.info(inspect(nonce))
+      #Logger.info("Done with mining....")
+      #Logger.info(inspect(hashed_value))
+      #Logger.info(inspect(target))
+      #Logger.info(inspect(nonce))
+      #Logger.debug(inspect(candidate_block))
+      print_mined_block(candidate_block)
       candidate_block
     else
       increment_nonce(candidate_block)
@@ -63,5 +66,47 @@ defmodule Bitcoin.Mining do
     header = %Bitcoin.Schemas.BlockHeader{header | nonce: nonce + 1}
     candidate_block = %Bitcoin.Schemas.Block{candidate_block | block_header: header}
     candidate_block
+  end
+
+  def print_mined_block(mined_block) do
+    IO.puts("\n--------- NEW BLOCK MINED! ---------")
+    IO.puts("* Stats:")
+    IO.puts("  - Height: #{Block.get_attr(mined_block, :height)}")
+    IO.puts("  - Transaction Counter: #{Block.get_attr(mined_block, :tx_counter)}")
+    IO.puts("  - Difficulty: #{Block.get_header_attr(mined_block, :bits)}")
+    IO.puts("  - Nonce required to achieve that difficulty: #{Block.get_header_attr(mined_block, :nonce)}")
+    IO.puts("* Transactions Summary: ")
+    print_transactions(Block.get_attr(mined_block, :txns))
+  end
+
+
+  defp print_transactions(transactions) do
+    coinbase_transaction = List.first(transactions)
+    coinbase_output = Map.get(coinbase_transaction, :outputs) |> List.first
+    coinbase_output_amount = Map.get(coinbase_output, :amount)
+    coinbase_address = Map.get(coinbase_output, :locking_script) |> String.split(" / ") |> Enum.at(3) 
+    IO.puts("  - Coinbase Transaction | Amount: #{coinbase_output_amount} | Recipient: #{coinbase_address}")
+
+    transactions_without_coinbase =  Enum.slice(transactions, 1..-1)
+    Enum.with_index(transactions_without_coinbase) 
+    |> Enum.each(fn {tx, idx} -> 
+      print_one_transaction(tx, idx)
+    end)
+  end
+
+  defp print_one_transaction(transaction, index) do
+    IO.puts("  - Transaction #{index + 1}")
+    tx_inputs =  Map.get(transaction, :inputs)
+    IO.puts("      - TxID: #{Map.get(transaction, :tx_id)}")
+    Enum.with_index(tx_inputs) 
+    |> Enum.each(fn {input, idx} -> 
+      IO.puts("     -  Tx Input #{idx + 1} - #{Map.get(input, :tx_id)}")
+    end)
+
+    tx_outputs = Map.get(transaction, :outputs)
+    Enum.with_index(tx_outputs) 
+    |> Enum.each(fn {output, idx} -> 
+      IO.puts("     -  Tx Output #{idx + 1} - | Amount: #{Map.get(output, :amount)} | Recipient: #{Map.get(output, :locking_script) |> String.split(" / ") |> Enum.at(3)}")
+    end)
   end
 end
