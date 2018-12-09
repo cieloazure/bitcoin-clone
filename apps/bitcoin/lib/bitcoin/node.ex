@@ -192,7 +192,7 @@ defmodule Bitcoin.Node do
     Chord.broadcast(state[:chord_api], :new_transaction, transaction)
 
     # Broadcast the event to all watching the simulation
-    Bitcoin.Utilities.EventGenerator.broadcast_event("new_transaction", transaction)
+    #Bitcoin.Utilities.EventGenerator.broadcast_event("new_transaction", transaction)
 
     {:noreply, state}
   end
@@ -247,7 +247,7 @@ defmodule Bitcoin.Node do
   end
 
   @impl true
-  def handle_info({:orphan_transaction, transaction, _unreferenced_inputs}, state) do
+  def handle_info({:orphan_transaction, transaction, unreferenced_inputs}, state) do
     state =
       if !Enum.any?(state[:orphan_pool], fn {txn, _unref_o} -> Map.equal?(txn, transaction) end),
         do:

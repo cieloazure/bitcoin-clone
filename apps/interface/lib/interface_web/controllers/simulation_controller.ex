@@ -2,6 +2,8 @@ defmodule InterfaceWeb.SimulationController do
   use InterfaceWeb, :controller
   require Logger
 
+  plug :put_layout, "simulation_layout.html"
+
   def index(conn, _params) do
     render(conn, "index.html")
   end
