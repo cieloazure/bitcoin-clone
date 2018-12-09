@@ -15,7 +15,7 @@ defmodule Bitcoin.Utilities.Base58Check do
   ### PRIVATE FUNCTION ###
 
   # checksum
-  defp checksum(data, version \\ <<0x00>>) do
+  defp checksum(data, version) do
     (version <> data)
     |> sha256
     |> sha256

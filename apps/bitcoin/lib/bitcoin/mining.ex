@@ -32,7 +32,7 @@ defmodule Bitcoin.Mining do
     zeros_required = 32 - (String.trim_leading(target, <<0>>) |> byte_size)
     zeros_required = if zeros_required < 0, do: 0, else: zeros_required
     header = Bitcoin.Structures.Block.get_attr(candidate_block, :block_header)
-    nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
+    # nonce = Bitcoin.Structures.Block.get_header_attr(candidate_block, :nonce)
     # IO.inspect(nonce)
 
     <<zeros_obtained_target::bytes-size(zeros_required), _::bits>> = target
