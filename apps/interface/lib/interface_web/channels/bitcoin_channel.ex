@@ -5,8 +5,8 @@ defmodule InterfaceWeb.BitcoinChannel do
     {:ok, %{channel_name: channel_name}, socket}
   end
 
-  def handle_in("message:test_msg", %{"message" => content}, socket) do
-    broadcast!(socket, "bitcoin:test:new_message", %{content: content})
-    {:reply, :ok, socket}
-  end
+  #def handle_in("message:test_msg", %{"message" => content}, socket) do
+    #broadcast!(socket, "bitcoin:test:new_message", %{content: content})
+    #{:reply, :ok, socket}
+  #end
 end
