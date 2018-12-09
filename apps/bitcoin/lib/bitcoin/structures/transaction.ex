@@ -158,6 +158,7 @@ defmodule Bitcoin.Structures.Transaction do
 
       # Verify within the subchain whether tx_output has been used as a Transaction input
       Enum.each(subchain, fn block ->
+
         tx_inputs =
           Map.get(block, :txns)
           |> (fn txn -> if !is_list(txn), do: [txn], else: txn end).()
@@ -243,6 +244,7 @@ defmodule Bitcoin.Structures.Transaction do
 
       # 5. verify standard form of locking and unlocking scripts
       # TODO:
+
       # 6. verify for each input, referenced output is unspent
       # 7. verify unlocking script validates against locking scripts.
       if !(Enum.zip(inputs, referenced_outputs)
@@ -261,6 +263,7 @@ defmodule Bitcoin.Structures.Transaction do
 
       # 9. reject if transaction fee is too low to get into empty block
       # TODO:
+
       # all checks valid
       true
     catch
