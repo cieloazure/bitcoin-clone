@@ -7,6 +7,7 @@
 // Pass the token on params as below. Or remove it
 // from the params if you are not using authentication.
 import {Socket} from "phoenix"
+import chart from "./simulation"
 
 let socket = new Socket("/socket", {params: {token: window.userToken}})
 
@@ -68,6 +69,21 @@ channel.on("bitcoin:test:new_message", (message) => {
 
    var currentDiv = document.getElementById("events");
    currentDiv.appendChild(newLi);
+});
+
+function addData(chart, label, data) {
+    console.log(chart);
+    chart.data.labels.push(label);
+    chart.data.datasets.forEach((dataset) => {
+        dataset.data.push(data);
+    });
+    chart.update();
+}
+
+channel.on("bitcoin:simulation:new_block", (new_block) => {
+   console.log("message", new_block);
+   console.log("chart", chart);
+   addData(chart, Date.UTC(), new_block["height"]);
 });
 
 export default socket
