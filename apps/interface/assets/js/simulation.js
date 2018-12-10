@@ -42,11 +42,8 @@ function addData(chart, label, data) {
     chart.update();
 }
 
-addData(chart, Date.UTC(), 0);
-addData(chart, Date.UTC(), 10);
-addData(chart, Date.UTC(), 20);
-addData(chart, Date.UTC(), 30);
-addData(chart, Date.UTC(), 40);
+
+export default chart;
 //var ctx = document.getElementById("myChart");
 //var myChart = new Chart(ctx, {
     //type: 'bar',

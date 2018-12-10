@@ -9,7 +9,11 @@ defmodule InterfaceWeb.SimulationController do
   end
 
   def handle_event(conn, params) do
-    InterfaceWeb.Endpoint.broadcast("bitcoin:test", "bitcoin:test:new_message", %{content: "hello from controller"})
+    #InterfaceWeb.Endpoint.broadcast("bitcoin:test", "bitcoin:test:new_message", %{content: "hello from controller"})
+    case Map.get(params, "event_name") do
+      "new_block" -> 
+        InterfaceWeb.Endpoint.broadcast("bitcoin:simulation", "bitcoin:simulation:new_block", %{height: Map.get(params, "height")})
+    end
     json(conn, %{"status" => "ok"})
   end
 end

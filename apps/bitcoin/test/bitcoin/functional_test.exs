@@ -14,6 +14,8 @@ defmodule Bitcoin.FunctionalTest do
 
     mined_genesis_block = Bitcoin.Mining.initiate_mining(candidate_genesis_block)
 
+    Bitcoin.Utilities.EventGenerator.broadcast_event("new_block_found", mined_genesis_block)
+
     {:ok, node1} =
       Bitcoin.Node.start_link(
         ip_addr: "192.168.0.1",
@@ -54,6 +56,6 @@ defmodule Bitcoin.FunctionalTest do
     Process.sleep(2000)
 
     Bitcoin.Node.transfer_money(node1, address3, 2500, 0)
-    Process.sleep(100000)
+    Process.sleep(10000000)
   end
 end
