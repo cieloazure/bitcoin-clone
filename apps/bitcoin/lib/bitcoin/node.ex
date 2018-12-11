@@ -81,7 +81,6 @@ defmodule Bitcoin.Node do
 
     wallet = Keyword.get(opts, :wallet) || wallet
 
-
     {:ok, blockchain} =
       Bitcoin.Blockchain.start_link(
         genesis_block: genesis_block,
@@ -170,7 +169,8 @@ defmodule Bitcoin.Node do
       Bitcoin.Wallet.collect_utxo(
         state[:wallet][:public_key],
         state[:wallet][:private_key],
-        chain
+        chain,
+        state[:tx_pool]
       )
 
     tx_ins = Bitcoin.Structures.Transaction.get_required_inputs(utxo, amount)
@@ -192,7 +192,7 @@ defmodule Bitcoin.Node do
     Chord.broadcast(state[:chord_api], :new_transaction, transaction)
 
     # Broadcast the event to all watching the simulation
-    #Bitcoin.Utilities.EventGenerator.broadcast_event("new_transaction", transaction)
+    # Bitcoin.Utilities.EventGenerator.broadcast_event("new_transaction", transaction)
 
     {:noreply, state}
   end
@@ -207,7 +207,7 @@ defmodule Bitcoin.Node do
 
     # Broadcast the event to all watching the simulation
     Bitcoin.Utilities.EventGenerator.broadcast_event("new_block_found", new_block)
-    
+
     {:noreply, state}
   end
 
@@ -225,6 +225,7 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
     IO.puts("Received a transaction.....")
+
     state =
       if Transaction.valid?(
            transaction,
@@ -234,8 +235,7 @@ defmodule Bitcoin.Node do
          ) do
         state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
 
-        {orphan_pool, accepted_txns} =
-          update_orphan_pool(transaction, state[:orphan_pool])
+        {orphan_pool, accepted_txns} = update_orphan_pool(transaction, state[:orphan_pool])
 
         state = Keyword.put(state, :orphan_pool, orphan_pool)
         Keyword.put(state, :tx_pool, accepted_txns ++ state[:tx_pool])
@@ -293,11 +293,11 @@ defmodule Bitcoin.Node do
       else
         orphan_pool
       end
-    
+
     orphan_pool = orphan_pool -- accepted_txns
 
     {accepted_txns, _referenced_inputs} = Enum.unzip(accepted_txns)
-    
+
     {orphan_pool, accepted_txns}
   end
 end

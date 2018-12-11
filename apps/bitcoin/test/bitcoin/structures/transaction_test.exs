@@ -48,6 +48,12 @@ defmodule Bitcoin.Structures.TransactionTest do
       assert !Transaction.valid?(inv_tx1(), chain, [], nil)
     end
 
+    test "reusing transaction input used in transaction pool" do
+      chain = get_chain()
+      assert Bitcoin.Schemas.Transaction.valid?(tx5())
+      assert !Transaction.valid?(tx5(), chain, [tx6()], nil)
+    end
+
     test "incorrect unlocking script" do
       chain = get_chain()
       assert Bitcoin.Schemas.Transaction.valid?(inv_tx2())

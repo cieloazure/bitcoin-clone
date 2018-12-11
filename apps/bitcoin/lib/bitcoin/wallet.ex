@@ -20,7 +20,7 @@ defmodule Bitcoin.Wallet do
   @doc """
   Collect the Unspent Transacion outputs for the given address from the blockchain
   """
-  def collect_utxo(public_key, private_key, chain) do
+  def collect_utxo(public_key, private_key, chain, tx_pool \\ []) do
     utxos =
       Enum.flat_map(chain, fn block ->
         txos =
@@ -38,7 +38,7 @@ defmodule Bitcoin.Wallet do
         # Collect unspent transaction_outputs from the above set
         utxo =
           Enum.filter(user_txos, fn txo ->
-            Transaction.unspent_output?(txo, chain)
+            Transaction.unspent_output?(txo, chain, tx_pool)
           end)
 
         utxo

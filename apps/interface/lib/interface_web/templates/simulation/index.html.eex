@@ -2,4 +2,8 @@
   <ul id="events">
   </ul>
   <canvas id="heightChart" width="100" height="100"></canvas>
-</div>
+  <canvas id="circulationChart" width="100" height="100"></canvas>
+  <canvas id="txChart" height="100" width="100"></canvas>>
+  <canvas id="difficultyChart" height="100" width="100"></canvas>>
+  <canvas id="miningRateChart" height="100" width="100"></canvas>>
+  </div>

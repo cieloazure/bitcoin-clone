@@ -579,6 +579,51 @@ defmodule DummyData do
     }
   end
 
+  # Sixth Transaction.
+  def tx6() do
+    %Bitcoin.Schemas.Transaction{
+      input_counter: 1,
+      inputs: [
+        %Bitcoin.Schemas.TransactionInput{
+          output_index: 2,
+          tx_id: "d63a4772-46f6-4362-829b-01ab5baf4603",
+          unlocking_script:
+            <<48, 68, 2, 32, 45, 156, 128, 218, 141, 45, 81, 161, 217, 190, 255, 179, 159, 98,
+              233, 246, 235, 240, 104, 144, 174, 242, 67, 25, 190, 18, 59, 129, 218, 27, 224, 43,
+              2, 32, 52, 25, 71, 177, 116, 251, 72, 9, 152, 18, 37, 243, 62, 75, 61, 9, 114, 173,
+              147, 121, 156, 178, 182, 220, 126, 171, 129, 138, 143, 206, 81, 162, 32, 47, 32, 4,
+              107, 154, 45, 160, 184, 29, 45, 220, 226, 32, 71, 30, 106, 206, 19, 199, 219, 147,
+              118, 202, 23, 72, 133, 148, 240, 229, 86, 222, 127, 53, 246, 167, 52, 196, 139, 203,
+              158, 216, 204, 25, 63, 255, 191, 230, 193, 55, 192, 202, 128, 226, 247, 85, 172, 8,
+              6, 101, 103, 232, 39, 137, 235, 48, 38, 146>>,
+          unlocking_script_size: nil
+        }
+      ],
+      locktime: nil,
+      output_counter: 2,
+      outputs: [
+        %Bitcoin.Schemas.TransactionOutput{
+          address: nil,
+          amount: 2_000_000_000,
+          locking_script:
+            "DUP / HASH160 / BASE58CHECK / 1X5phXKrhLPWwhiFZSer5DHM7xJNFumKKA / EQUALVERIFY / CHECKSIG",
+          output_index: 1,
+          tx_id: "fc471076-f7be-439b-8ee5-30cefd47a2f3"
+        },
+        %Bitcoin.Schemas.TransactionOutput{
+          address: nil,
+          amount: 1_799_997_000,
+          locking_script:
+            "DUP / HASH160 / BASE58CHECK / 1LnTWuHkrsX5ZqTs36FjyAdmhdJdqaHyh5 / EQUALVERIFY / CHECKSIG",
+          output_index: 2,
+          tx_id: "fc471076-f7be-439b-8ee5-30cefd47a2f3"
+        }
+      ],
+      tx_id: "fc471076-f7be-439b-8ee5-30cefd47a2f3",
+      version: nil
+    }
+  end
+
   # INVALID TRANSACTIONS #
   # reuses transaction output used in tx2.
   # wallet2 to wallet 1 using tx_output used in tx2().
