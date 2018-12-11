@@ -129,7 +129,7 @@ defmodule Bitcoin.Structures.Transaction do
   @doc """
   Check whether the given transaction output is unspent
   """
-  def unspent_output?(tx_output, chain) do
+  def unspent_output?(tx_output, chain, tx_pool \\ []) do
     txo_id = Map.get(tx_output, :tx_id)
     txo_index = Map.get(tx_output, :output_index)
 
@@ -158,11 +158,20 @@ defmodule Bitcoin.Structures.Transaction do
 
       # Verify within the subchain whether tx_output has been used as a Transaction input
       Enum.each(subchain, fn block ->
-
         tx_inputs =
           Map.get(block, :txns)
           |> (fn txn -> if !is_list(txn), do: [txn], else: txn end).()
           |> Enum.flat_map(fn txn -> Map.get(txn, :inputs) end)
+
+        if Enum.any?(tx_inputs, fn txi ->
+             Map.get(txi, :tx_id) == txo_id and Map.get(txi, :output_index) == txo_index
+           end),
+           do: throw(:break)
+      end)
+
+      # Verify within current transaction pool whether tx_output has been used as a Transaction input
+      Enum.each(tx_pool, fn txn ->
+        tx_inputs = Map.get(txn, :inputs)
 
         if Enum.any?(tx_inputs, fn txi ->
              Map.get(txi, :tx_id) == txo_id and Map.get(txi, :output_index) == txo_index
@@ -249,7 +258,7 @@ defmodule Bitcoin.Structures.Transaction do
       # 7. verify unlocking script validates against locking scripts.
       if !(Enum.zip(inputs, referenced_outputs)
            |> Enum.all?(fn {input, referenced_output} ->
-             valid_input?(input, referenced_output, chain)
+             valid_input?(input, referenced_output, chain, transaction_pool)
            end)),
          do: throw(:break)
 
@@ -272,7 +281,7 @@ defmodule Bitcoin.Structures.Transaction do
   end
 
   # Validate transaction inputs with their referenced outputs
-  defp valid_input?(input, referenced_outputs, chain) do
+  defp valid_input?(input, referenced_outputs, chain, transaction_pool) do
     try do
       # 7. verify unlocking script validates against locking scripts.
       script =
@@ -285,7 +294,7 @@ defmodule Bitcoin.Structures.Transaction do
         do: throw({:break, false})
 
       # 6. verify for each input, referenced output is unspent
-      if !unspent_output?(referenced_outputs, chain),
+      if !unspent_output?(referenced_outputs, chain, transaction_pool),
         do: throw({:break, false})
 
       throw({:break, true})

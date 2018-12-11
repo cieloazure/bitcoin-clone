@@ -1,6 +1,7 @@
 defmodule Bitcoin.FunctionalTest do
   use ExUnit.Case
 
+  @tag skip: true
   test "functional test for mining competitition between two nodes" do
     alias Bitcoin.Structures.Block
     {:ok, seed} = SeedServer.start_link([])
@@ -38,7 +39,7 @@ defmodule Bitcoin.FunctionalTest do
         ip_addr: "192.168.0.3",
         seed: seed,
         genesis_block: mined_genesis_block,
-        identifier: 3 
+        identifier: 3
       )
 
     Bitcoin.Node.start_mining(node1)
@@ -56,6 +57,6 @@ defmodule Bitcoin.FunctionalTest do
     Process.sleep(2000)
 
     Bitcoin.Node.transfer_money(node1, address3, 2500, 0)
-    Process.sleep(10000000)
+    Process.sleep(10_000_000)
   end
 end
