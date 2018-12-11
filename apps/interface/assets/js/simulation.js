@@ -7,7 +7,8 @@ var data = [
     y: 5 
   },
 ];
-var chart = new Chart(ctx, {
+var chart = newChart(ctx, data, 'linear');
+/*var chart = new Chart(ctx, {
     type: 'line',
     data: {
       datasets: [{
@@ -33,13 +34,44 @@ var chart = new Chart(ctx, {
       }
     }
 });
-
+*/
 function addData(chart, label, data) {
     chart.data.labels.push(label);
     chart.data.datasets.forEach((dataset) => {
         dataset.data.push(data);
     });
     chart.update();
+}
+
+function newChart(context, data, distribution) {
+    var chart = new Chart(context, {
+        type: 'line',
+        data: {
+          datasets: [{
+            data: data,
+            borderColor: "#3e95cd",
+            fill: false
+          }]
+        },
+        options: {
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                    distribution: distribution
+                }],
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }]
+            },
+          ticks: {
+            source: 'data'
+          }
+        }
+    });
+
+    return chart;
 }
 
 
