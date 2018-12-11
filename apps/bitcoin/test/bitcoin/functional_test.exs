@@ -11,7 +11,7 @@ defmodule Bitcoin.FunctionalTest do
     recipient = wallet[:address]
 
     candidate_genesis_block =
-      Bitcoin.Structures.Block.create_candidate_genesis_block("1EFFFFFF", recipient)
+      Bitcoin.Structures.Block.create_candidate_genesis_block("1E5FFFFF", recipient)
 
     mined_genesis_block = Bitcoin.Mining.initiate_mining(candidate_genesis_block)
 
@@ -26,37 +26,40 @@ defmodule Bitcoin.FunctionalTest do
         wallet: wallet
       )
 
-    {:ok, node2} =
-      Bitcoin.Node.start_link(
-        ip_addr: "192.168.0.2",
-        seed: seed,
-        genesis_block: mined_genesis_block,
-        identifier: 2
-      )
+    nodes =
+      for n <- 2..100 do
+        {:ok, node} =
+          Bitcoin.Node.start_link(
+            ip_addr:
+              to_string(:rand.uniform(255)) <>
+                "." <>
+                to_string(:rand.uniform(255)) <>
+                "." <> to_string(:rand.uniform(255)) <> "." <> to_string(:rand.uniform(255)),
+            seed: seed,
+            genesis_block: mined_genesis_block,
+            identifier: n
+          )
 
-    {:ok, node3} =
-      Bitcoin.Node.start_link(
-        ip_addr: "192.168.0.3",
-        seed: seed,
-        genesis_block: mined_genesis_block,
-        identifier: 3
-      )
+        Process.sleep(1000)
+        node
+      end
 
-    Bitcoin.Node.start_mining(node1)
-    Bitcoin.Node.start_mining(node2)
-    Bitcoin.Node.start_mining(node3)
+    Enum.each(nodes, fn node ->
+      Bitcoin.Node.start_mining(node)
+    end)
 
-    address1 = Bitcoin.Node.get_public_address(node1)
-    address2 = Bitcoin.Node.get_public_address(node2)
-    address3 = Bitcoin.Node.get_public_address(node3)
-
-    Bitcoin.Node.transfer_money(node1, address2, 25, 0)
     Process.sleep(2000)
 
-    Bitcoin.Node.transfer_money(node2, address1, 12.5, 0)
-    Process.sleep(2000)
+    addresses =
+      Enum.map(nodes, fn node ->
+        Bitcoin.Node.get_public_address(node)
+      end)
 
-    Bitcoin.Node.transfer_money(node1, address3, 2500, 0)
-    Process.sleep(10_000_000)
+    Enum.each(addresses, fn address ->
+      Bitcoin.Node.transfer_money(node1, Enum.at(addresses, 0), 25, 0)
+      Process.sleep(30000)
+    end)
+
+    Process.sleep(100_000_000)
   end
 end

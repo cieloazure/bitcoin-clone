@@ -245,7 +245,7 @@ defmodule Bitcoin.Structures.Block do
   # For example, 
   # calculate_target_from_bits("1fffffff") will give <<0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   # 0, 0, 0, 0, 0, 0, 0, 0>>
-  defp calculate_target_from_bits(bits) when is_bitstring(bits) do
+  def calculate_target_from_bits(bits) when is_bitstring(bits) do
     {exponent, coeffiecient} = String.split_at(bits, 2)
 
     exponent = hex_to_decimal(exponent)

@@ -6,4 +6,4 @@
   <canvas id="txChart" height="100" width="100"></canvas>>
   <canvas id="difficultyChart" height="100" width="100"></canvas>>
   <canvas id="miningRateChart" height="100" width="100"></canvas>>
-  </div>
+</div>

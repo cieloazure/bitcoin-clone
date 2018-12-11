@@ -10,7 +10,6 @@ defmodule Bitcoin.Wallet do
   Initialize the wallet variables
   """
   def init_wallet() do
-    Logger.info(fn -> "test" end)
     private_key = Keys.generate_private_key()
     public_key = Keys.to_public_key(private_key)
     address = Keys.to_public_address(private_key)

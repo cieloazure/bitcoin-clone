@@ -83,7 +83,7 @@ function addData(chart, label, data) {
 channel.on("bitcoin:simulation:new_block", (new_block) => {
    console.log("message", new_block);
    console.log("chart", chart);
-   addData(chart, Date.UTC(), new_block["height"]);
+   addData(chart, new Date(new_block["timestamp"]), new_block["height"]);
 });
 
 export default socket
