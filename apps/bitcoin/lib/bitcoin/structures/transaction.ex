@@ -158,7 +158,6 @@ defmodule Bitcoin.Structures.Transaction do
 
       # Verify within the subchain whether tx_output has been used as a Transaction input
       Enum.each(subchain, fn block ->
-
         tx_inputs =
           Map.get(block, :txns)
           |> (fn txn -> if !is_list(txn), do: [txn], else: txn end).()

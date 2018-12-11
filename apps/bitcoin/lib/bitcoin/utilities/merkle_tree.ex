@@ -21,7 +21,9 @@ defmodule Bitcoin.Utilities.MerkleTree do
       end
 
     merkle_tree =
-      Enum.reduce(0..trunc(:math.log2(length(items))) + 1, %{}, fn x, acc -> Map.put(acc, x, []) end)
+      Enum.reduce(0..(trunc(:math.log2(length(items))) + 1), %{}, fn x, acc ->
+        Map.put(acc, x, [])
+      end)
 
     tree_hash(items, [], merkle_tree)
   end

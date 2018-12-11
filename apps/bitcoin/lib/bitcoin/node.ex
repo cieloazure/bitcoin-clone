@@ -81,7 +81,6 @@ defmodule Bitcoin.Node do
 
     wallet = Keyword.get(opts, :wallet) || wallet
 
-
     {:ok, blockchain} =
       Bitcoin.Blockchain.start_link(
         genesis_block: genesis_block,
@@ -193,7 +192,7 @@ defmodule Bitcoin.Node do
       IO.puts("Created a new transaction...at #{inspect(self())}")
       ## BROADCAST 
       ## add transaction to this node's transaction pool
-      #state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
+      # state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
       # Broadcast this transaction to other nodes
       Chord.broadcast(state[:chord_api], :new_transaction, transaction)
     end
@@ -211,7 +210,7 @@ defmodule Bitcoin.Node do
 
     # Broadcast the event to all watching the simulation
     Bitcoin.Utilities.EventGenerator.broadcast_event("new_block_found", new_block)
-    
+
     {:noreply, state}
   end
 
@@ -229,6 +228,7 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
     IO.puts("Received a transaction.....at #{inspect(self())}")
+
     state =
       if Transaction.valid?(
            transaction,
@@ -238,8 +238,7 @@ defmodule Bitcoin.Node do
          ) do
         state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
 
-        {orphan_pool, accepted_txns} =
-          update_orphan_pool(transaction, state[:orphan_pool])
+        {orphan_pool, accepted_txns} = update_orphan_pool(transaction, state[:orphan_pool])
 
         state = Keyword.put(state, :orphan_pool, orphan_pool)
         Keyword.put(state, :tx_pool, accepted_txns ++ state[:tx_pool])
@@ -297,18 +296,18 @@ defmodule Bitcoin.Node do
       else
         orphan_pool
       end
-    
+
     orphan_pool = orphan_pool -- accepted_txns
 
     {accepted_txns, _referenced_inputs} = Enum.unzip(accepted_txns)
-    
+
     {orphan_pool, accepted_txns}
   end
 
   # refresh_tx_pool
   # Remove the txn from pool which are already included in the chain
   defp refresh_tx_pool(tx_pool, chain) do
-    Enum.filter(tx_pool, fn pool_tx -> 
+    Enum.filter(tx_pool, fn pool_tx ->
       !Enum.any?(chain, fn block -> Block.contains?(block, pool_tx) end)
     end)
   end

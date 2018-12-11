@@ -1,6 +1,6 @@
 defmodule Interface.Simulation do
   def scenario1() do
-    #alias Bitcoin.Structures.Block
+    # alias Bitcoin.Structures.Block
     {:ok, seed} = SeedServer.start_link([])
 
     wallet = Bitcoin.Wallet.init_wallet()
@@ -22,24 +22,23 @@ defmodule Interface.Simulation do
         wallet: wallet
       )
 
-    nodes = for _n <- 1..3 do
+    nodes =
+      for _n <- 1..3 do
+        {:ok, node} =
+          Bitcoin.Node.start_link(
+            ip_addr: generate_rand_ip_addr(),
+            seed: seed,
+            genesis_block: mined_genesis_block
+          )
 
-      {:ok, node} =
-        Bitcoin.Node.start_link(
-          ip_addr: generate_rand_ip_addr(),
-          seed: seed,
-          genesis_block: mined_genesis_block
-        )
-
-      Bitcoin.Node.start_mining(node)
-      {node, Bitcoin.Node.get_public_address(node)}
-    end
-
+        Bitcoin.Node.start_mining(node)
+        {node, Bitcoin.Node.get_public_address(node)}
+      end
 
     # Distributing money to get them started
-    #Enum.each(nodes, fn {_node, address} -> 
-    #Bitcoin.Node.transfer_money(genesis_node, List.first(nodes) |> elem(1), 500000, 10)
-    #end)
+    # Enum.each(nodes, fn {_node, address} -> 
+    # Bitcoin.Node.transfer_money(genesis_node, List.first(nodes) |> elem(1), 500000, 10)
+    # end)
   end
 
   defp generate_rand_ip_addr() do

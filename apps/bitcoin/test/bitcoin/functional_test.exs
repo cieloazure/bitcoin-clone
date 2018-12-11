@@ -25,33 +25,40 @@ defmodule Bitcoin.FunctionalTest do
         wallet: wallet
       )
 
-    nodes = for n <- 2..100 do
-      {:ok, node} =
-        Bitcoin.Node.start_link(
-          ip_addr: to_string(:rand.uniform(255)) <> "." <> to_string(:rand.uniform(255)) <> "." <> to_string(:rand.uniform(255)) <> "." <> to_string(:rand.uniform(255)),
-          seed: seed,
-          genesis_block: mined_genesis_block,
-          identifier: n
-        )
-      Process.sleep(1000)
-      node
-    end
+    nodes =
+      for n <- 2..100 do
+        {:ok, node} =
+          Bitcoin.Node.start_link(
+            ip_addr:
+              to_string(:rand.uniform(255)) <>
+                "." <>
+                to_string(:rand.uniform(255)) <>
+                "." <> to_string(:rand.uniform(255)) <> "." <> to_string(:rand.uniform(255)),
+            seed: seed,
+            genesis_block: mined_genesis_block,
+            identifier: n
+          )
 
-    Enum.each(nodes, fn node -> 
+        Process.sleep(1000)
+        node
+      end
+
+    Enum.each(nodes, fn node ->
       Bitcoin.Node.start_mining(node)
     end)
 
     Process.sleep(2000)
 
-    addresses = Enum.map(nodes, fn node -> 
-      Bitcoin.Node.get_public_address(node)
-    end)
+    addresses =
+      Enum.map(nodes, fn node ->
+        Bitcoin.Node.get_public_address(node)
+      end)
 
-    Enum.each(addresses, fn address -> 
+    Enum.each(addresses, fn address ->
       Bitcoin.Node.transfer_money(node1, Enum.at(addresses, 0), 25, 0)
       Process.sleep(30000)
     end)
 
-    Process.sleep(100000000)
+    Process.sleep(100_000_000)
   end
 end

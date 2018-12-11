@@ -53,9 +53,7 @@ defmodule Bitcoin.NodeTest do
              Bitcoin.Structures.Chain.sort([genesis_block | new_items], :height)
   end
 
-
   test "update transaction pool. valid transaction" do
-
     {:ok, seed} = SeedServer.start_link([])
     gen_block = genesis_block()
     chain = get_chain()
@@ -87,7 +85,6 @@ defmodule Bitcoin.NodeTest do
   end
 
   test "don't update transaction pool. invalid transaction" do
-
     {:ok, seed} = SeedServer.start_link([])
     gen_block = genesis_block()
     chain = [gen_block]
@@ -144,8 +141,6 @@ defmodule Bitcoin.NodeTest do
   end
 
   test "update orphan and transaction pool on receiving a new transaction with referenced_output" do
-
-
     {:ok, seed} = SeedServer.start_link([])
     gen_block = genesis_block()
     chain = get_chain
@@ -162,7 +157,7 @@ defmodule Bitcoin.NodeTest do
     Bitcoin.Blockchain.set_chain(blockchain1, chain)
 
     send(node1, {:new_transaction, orphan_tx1()})
-      Process.sleep(100)
+    Process.sleep(100)
     send(node1, {:new_transaction, tx5()})
     state = :sys.get_state(node1)
 

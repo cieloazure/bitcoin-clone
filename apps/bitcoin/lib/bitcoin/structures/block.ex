@@ -192,7 +192,7 @@ defmodule Bitcoin.Structures.Block do
   """
   def calculate_target(block) do
     bits = get_header_attr(block, :bits)
-    #IO.puts("Target bits are: #{bits}")
+    # IO.puts("Target bits are: #{bits}")
     calculate_target_from_bits(bits)
   end
 
@@ -326,9 +326,9 @@ defmodule Bitcoin.Structures.Block do
       # convert to secs
       time_difference = div(time_difference, trunc(:math.pow(10, 9)))
 
-      #IO.puts("height: #{height}")
-      #IO.puts("last 10th block height: #{inspect(get_attr(first_block, :height))}")
-      #IO.puts("actual time diff: #{time_difference}")
+      # IO.puts("height: #{height}")
+      # IO.puts("last 10th block height: #{inspect(get_attr(first_block, :height))}")
+      # IO.puts("actual time diff: #{time_difference}")
 
       modifier =
         get_modifier(
@@ -336,7 +336,7 @@ defmodule Bitcoin.Structures.Block do
           expected_time_to_solve_one_block_in_secs * retarget_difficulty_after_blocks
         )
 
-      #IO.puts("modifier: #{inspect(modifier)}")
+      # IO.puts("modifier: #{inspect(modifier)}")
 
       target = calculate_target_from_bits(get_header_attr(last_block, :bits))
 
@@ -440,9 +440,9 @@ defmodule Bitcoin.Structures.Block do
   end
 
   # Check the validity of the transactions 
-  #defp valid_transactions?(block, chain) do
-    #!Enum.any?(get_attr(block, :txns), fn transaction -> 
-      #Enum.any?(chain, fn block -> contains?(block, transaction) end)
-    #end)
-  #end
+  # defp valid_transactions?(block, chain) do
+  #! Enum.any?(get_attr(block, :txns), fn transaction -> 
+  # Enum.any?(chain, fn block -> contains?(block, transaction) end)
+  # end)
+  # end
 end
