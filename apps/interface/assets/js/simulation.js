@@ -11,12 +11,17 @@ var chart = new Chart(ctx, {
     type: 'line',
     data: {
       datasets: [{
+        label: "height",
         data: data,
         borderColor: "#3e95cd",
         fill: false
       }]
     },
     options: {
+        title: {
+          display: true,
+          text: 'Height of Blockchain'
+        },
         scales: {
             xAxes: [{
                 type: 'time',

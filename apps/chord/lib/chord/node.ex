@@ -123,7 +123,7 @@ defmodule Chord.Node do
   An api method to get the succ list of a node
   """
   def get_succ_list(node) do
-    GenServer.call(node, {:get_succ_list})
+    GenServer.call(node, {:get_succ_list}, 10000)
   end
 
   @doc """
@@ -789,7 +789,7 @@ defmodule Chord.Node do
   end
 
   @impl true
-  def handle_info(msg, state) do
+  def handle_info(_msg, state) do
     # Logger.info("unexpected message")
     # IO.inspect(msg)
     {:noreply, state}

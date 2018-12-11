@@ -3,7 +3,7 @@ defmodule Bitcoin.Node do
   A Bitcoin full node
   """
   use GenServer
-  alias Bitcoin.Structures.Transaction
+  alias Bitcoin.Structures.{Transaction, Block}
   require Logger
 
   ###             ###
@@ -140,12 +140,12 @@ defmodule Bitcoin.Node do
 
     # Start a new mining process
     chain = given_chain || Bitcoin.Blockchain.get_chain(state[:blockchain])
-    # transaction_pool = Bitcoin.Transactions.get_transaction_pool()
-    transaction_pool = state[:tx_pool]
+
+    state = Keyword.put(state, :tx_pool, refresh_tx_pool(state[:tx_pool], chain))
 
     candidate_block =
       Bitcoin.Structures.Block.create_candidate_block(
-        transaction_pool,
+        state[:tx_pool],
         chain,
         state[:wallet][:address]
       )
@@ -153,7 +153,7 @@ defmodule Bitcoin.Node do
     task = Task.async(Bitcoin.Mining, :mine_async, [candidate_block, self()])
     state = Keyword.put(state, :tx_pool, [])
     state = Keyword.put(state, :mining, task)
-    # Bitcoin.Mining.mine_async(candidate_block, self())
+
     {:noreply, state}
   end
 
@@ -184,15 +184,19 @@ defmodule Bitcoin.Node do
         fees
       )
 
-    IO.puts("Created a new transaction...")
-    # BROADCAST 
-    # add transaction to this node's transaction pool
-    state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
-    # Broadcast this transaction to other nodes
-    Chord.broadcast(state[:chord_api], :new_transaction, transaction)
-
-    # Broadcast the event to all watching the simulation
-    #Bitcoin.Utilities.EventGenerator.broadcast_event("new_transaction", transaction)
+    if Transaction.valid?(
+         transaction,
+         Bitcoin.Blockchain.get_chain(state[:blockchain]),
+         state[:tx_pool],
+         self()
+       ) do
+      IO.puts("Created a new transaction...at #{inspect(self())}")
+      ## BROADCAST 
+      ## add transaction to this node's transaction pool
+      #state = Keyword.put(state, :tx_pool, [transaction] ++ state[:tx_pool])
+      # Broadcast this transaction to other nodes
+      Chord.broadcast(state[:chord_api], :new_transaction, transaction)
+    end
 
     {:noreply, state}
   end
@@ -224,7 +228,7 @@ defmodule Bitcoin.Node do
 
   @impl true
   def handle_info({:new_transaction, transaction}, state) do
-    IO.puts("Received a transaction.....")
+    IO.puts("Received a transaction.....at #{inspect(self())}")
     state =
       if Transaction.valid?(
            transaction,
@@ -299,5 +303,13 @@ defmodule Bitcoin.Node do
     {accepted_txns, _referenced_inputs} = Enum.unzip(accepted_txns)
     
     {orphan_pool, accepted_txns}
+  end
+
+  # refresh_tx_pool
+  # Remove the txn from pool which are already included in the chain
+  defp refresh_tx_pool(tx_pool, chain) do
+    Enum.filter(tx_pool, fn pool_tx -> 
+      !Enum.any?(chain, fn block -> Block.contains?(block, pool_tx) end)
+    end)
   end
 end

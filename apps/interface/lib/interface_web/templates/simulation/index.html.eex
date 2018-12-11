@@ -1,5 +1,7 @@
 <div class="phx-hero">
   <ul id="events">
   </ul>
-  <canvas id="heightChart" width="100" height="100"></canvas>
+  <div class="chart-container" style="position: relative; height:40vh; width:50vw">
+    <canvas id="heightChart"></canvas>
+  </div>
 </div>
