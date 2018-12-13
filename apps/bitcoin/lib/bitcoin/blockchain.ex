@@ -115,10 +115,13 @@ defmodule Bitcoin.Blockchain do
           {new_chain, forks, orphans}
 
         :new_block_found ->
+          #IO.puts("Received broadcast for the block at #{inspect(node)}")
           {new_chain, new_forks, new_orphans} = new_block_found(payload, {chain, forks, orphans})
 
           if length(new_chain) > length(chain) do
             Bitcoin.Node.start_mining(node, new_chain)
+          else
+            Bitcoin.Node.stop_mining(node)
           end
 
           {new_chain, new_forks, new_orphans}
@@ -178,6 +181,7 @@ defmodule Bitcoin.Blockchain do
       # exists for further processing
       {location, condition} = find_block(new_block, {chain, forks})
 
+      #IO.puts("Location #{inspect(location)}, Condition #{inspect(condition)}")
       # Handle different condition
       case {location, condition} do
         {:in_chain, :at_top} ->

@@ -11,7 +11,7 @@ defmodule Bitcoin.FunctionalTest do
     recipient = wallet[:address]
 
     candidate_genesis_block =
-      Bitcoin.Structures.Block.create_candidate_genesis_block("1E5FFFFF", recipient)
+      Bitcoin.Structures.Block.create_candidate_genesis_block("1E0FFFFF", recipient)
 
     mined_genesis_block = Bitcoin.Mining.initiate_mining(candidate_genesis_block)
 
