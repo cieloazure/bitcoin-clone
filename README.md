@@ -12,6 +12,13 @@ The goal of this project was to learn about internal workings of bitcoin and imp
 >* functional tests (simple scenarios in which a transaction happens between two participants).
 > 3. **Bonus**: Implements more bitcoin "features" for part I (+20%)
 
+Project 4.2
+
+>1. Finish the distributed protocol 
+>2. Implement a simulation with at least 100 participants in which coins get mined and transacted.
+>3. Implement a web interface using the Phoenix that allows access to the ongoing simulation using a web browser (need to use the matching JavaScript library that allows Phoenix messages to be received in the browser). For charting, you can use Charts.js or any other charting library. As part of the simulation, capture various metrics and send them via Phoenix to the browser. (Links to an external site.)Links to an external site.
+>4. Implement various mining/transacting scenarios and describe them and their results in your README. 
+
 ### Functionalities Implemented
 
 #### Core functionalities implemented
@@ -42,6 +49,48 @@ The goal of this project was to learn about internal workings of bitcoin and imp
         - Inputs and outputs totals are between 0 and 21 million Btc
         - Sum(inputs) > sum(outputs). difference is fees
         - Unlocking script of Transaction inputs validate the locking scripts of corresponding referenced transaction outputs.
+4. Phoenix Web interface 
+     - Visualize the metrics of the simulation on Phoenix using Chart.js
+     - Metrics include graphs of:
+        - Height of blockchain
+        - Bitcoin in circulation
+        - Mining Difficulty
+        - Transactions per block
+5. Simulation executed on 100 participants
+6. Various transaction and mining scenarios like forks in blockchain, orphan blocks and transactions, invalid transactions, invalid blocks have been tested in test cases. 
+
+#### Scenario Results
+
+1. Forks in blockchain
+
+The blockchain forks result in inconsistent chain across nodes. In order to reach consensus, we wait for one more block in order to confirm main chain. 
+
+*Results* : It was observed and tested that the forks were resolved after one additional block
+
+2. Orphan Transactions
+
+Incoming transactions are checked for the transaction inputs and if its present in chain it is put in transaction pool else the transaction is put in orphan pool and awaits confirmation before being added to the block. 
+
+*Result* : This is a very rare occurance. However, orphan transactions are maintained in the orphan pool and transactions with each reference present in the chain are added to the candidate block for mining. 
+
+3. Difficulty
+
+We set the difficulty to be changed after every 10 blocks. Based on initial difficulty we set the average time required to mine one block at 10 secs. If the network required longer to mine the block, the difficulty decreases and converse is true as well. 
+
+*Result* : As observed in the phoenix web interface the difficulty is adjusted every 10 blocks and follows a step pattern. 
+
+4. Invalid transactions
+
+Based on a large set of conditions mentioned in the bitcoin literature validation of transaction is performed at every block. If the transaction is invalid the transaction is rejected by the block and not included in the candidate block for mining. Also it won't be propogated through the network. 
+
+*Result* : It can be observed on the console that only valid transactions are included in the blockchain.
+
+5. Invalid Blocks
+
+Any incoming block with invalid transactions, structure or not having proof of work is rejected and not added to the blockchain. 
+
+*Result* : It can be observed on the console that only valid blocks are included in the blockchain.
+
 
 #### Bonus features implemented
 1. Merkle tree for constructing the merkle root of the block header and getting a authentication path for a transaction in order to facilitate light weight nodes
