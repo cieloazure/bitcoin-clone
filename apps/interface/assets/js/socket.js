@@ -88,7 +88,7 @@ function addData(chart, label, data) {
 
   if (!chart.data.labels.includes(label)) {
     chart.data.datasets.forEach((dataset) => {
-      console.log("dataset.data", dataset.data)
+      // console.log("dataset.data", dataset.data)
 
 
       switch(chart.id) {
@@ -98,11 +98,11 @@ function addData(chart, label, data) {
           break;
 
         case 2:
-          console.log("!!!!!!!! data", data)
+          // console.log("!!!!!!!! data", data)
 
           if (dataset.data.length != 0) {
             data = dataset.data[dataset.data.length - 1] + (data / 100000000);
-            console.log("###### data", data);
+            // console.log("###### data", data);
           }
           else {
             data = data / 100000000;
@@ -129,6 +129,7 @@ channel.on("bitcoin:simulation:new_block", (new_block) => {
    // console.log("!!!!!!! reward", new_block["reward"]);
 
    addData(chart.circ, new_block["height"], new_block["reward"]);
+   addData(chart.tx, new_block["height"], new_block["tx_count"]);
 });
 
 export default socket

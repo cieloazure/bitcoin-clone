@@ -16,7 +16,8 @@ defmodule InterfaceWeb.SimulationController do
           height: Map.get(params, "height"),
           target: Map.get(params, "target"),
           timestamp: Map.get(params, "timestamp"),
-          reward: Map.get(params, "reward")
+          reward: Map.get(params, "reward"),
+          tx_count: Map.get(params, "tx_count")
         })
     end
 

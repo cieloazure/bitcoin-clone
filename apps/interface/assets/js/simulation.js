@@ -3,35 +3,10 @@ import Chart from 'chart.js';
 var height = document.getElementById("heightChart");
 var difficulty = document.getElementById("difficultyChart")
 var circulation = document.getElementById("circulationChart")
-// var tx = document.getElementById("txChart")
+var tx = document.getElementById("txChart")
 // var mining = document.getElementById("miningChart")
 
 var data = [];
-// var data = [
-//   {
-//     x: 0,
-//     y: 0 
-//   },
-// ];
-
-// var testData = [
-//   {
-//     x: 0,
-//     y: 0 
-//   },
-//   {
-//     x: 1,
-//     y: 1
-//   },
-//   {
-//     x: 2,
-//     y: 2
-//   },
-//   {
-//     x: 3,
-//     y: 3
-//   }
-// ];
 
 // var heightChart = newChart(height, data, 'Height of Blockchain', 'linear');
 var heightChart = new Chart(height, {
@@ -128,6 +103,34 @@ var circChart = new Chart(circulation, {
     }
 })
 
+var txChart = new Chart(tx, {
+    type: 'line',
+    data: {
+        datasets: [{
+            data: [],
+            borderColor: "#3e95cd",
+            fill: false,
+            yAxisID: 'left-y-axis'   
+        }]
+    },
+    options: {
+        title: {
+            display: true,
+            text: 'Transactions per block'
+        },
+        scales: {
+            yAxes: [{
+                id: 'left-y-axis',
+                type: 'linear',
+                position: 'left',
+                ticks: {
+                    beginAtZero: true
+                }
+            }]   
+        }   
+    }
+})
+
 // var circChart = newChart(circulation, data, 'linear');
 // var txChart = newChart(tx, data, 'linear');
 // var miningChart = newChart(mining, data, 'linear');
@@ -136,7 +139,7 @@ var chart = {
     h: heightChart,
     diff: diffChart,
     circ: circChart, 
-    // transactions: txChart, 
+    tx: txChart, 
     // mining: miningChart
 }
 
