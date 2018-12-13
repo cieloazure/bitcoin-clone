@@ -41,6 +41,10 @@ defmodule Bitcoin.Node do
     GenServer.cast(node, {:start_mining, chain})
   end
 
+  def stop_mining(node) do
+    GenServer.cast(node, {:stop_mining})
+  end
+
   @doc """
   Creates a transaction originating from node's wallet to recipient
   """
@@ -88,7 +92,7 @@ defmodule Bitcoin.Node do
       )
 
     {:ok, chord_api} =
-      Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed, number_of_bits: 8)
+      Chord.start_link(ip_addr: ip_addr, store: blockchain, seed_server: seed)
 
     {:ok,
      [
@@ -134,7 +138,7 @@ defmodule Bitcoin.Node do
     # Kill previous mining process
     if !is_nil(state[:mining]) do
       _status = Task.shutdown(state[:mining])
-      # IO.inspect(status)
+      #IO.inspect(status)
     end
 
     # Start a new mining process
@@ -153,6 +157,15 @@ defmodule Bitcoin.Node do
     state = Keyword.put(state, :tx_pool, [])
     state = Keyword.put(state, :mining, task)
 
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:stop_mining}, state) do
+    if !is_nil(state[:mining]) do
+      _status = Task.shutdown(state[:mining])
+      #IO.inspect(status)
+    end
     {:noreply, state}
   end
 
@@ -206,6 +219,7 @@ defmodule Bitcoin.Node do
   """
   @impl true
   def handle_cast({:new_block_found, new_block}, state) do
+    #IO.puts("New block found by #{inspect(self())}, Broadcasting it to all other nodes.....")
     Chord.broadcast(state[:chord_api], :new_block_found, new_block)
 
     # Broadcast the event to all watching the simulation

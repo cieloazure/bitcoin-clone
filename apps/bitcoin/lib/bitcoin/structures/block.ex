@@ -18,7 +18,7 @@ defmodule Bitcoin.Structures.Block do
   # If the time required to produce one block is greater then the 
   # difficulty should increase else it should decrease
   @retarget_difficulty_after_blocks 10
-  @expected_time_to_solve_one_block_in_secs 1
+  @expected_time_to_solve_one_block_in_secs 30
 
   @doc """
   Create the candidate genesis block for the blockchain. A genesis block is the first block in any blockchain.
