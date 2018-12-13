@@ -1,7 +1,7 @@
 defmodule Bitcoin.FunctionalTest do
   use ExUnit.Case
 
-  #@tag skip: true
+  # @tag skip: true
   test "functional test for mining competitition between two nodes" do
     alias Bitcoin.Structures.Block
     {:ok, seed} = SeedServer.start_link([])
@@ -27,7 +27,7 @@ defmodule Bitcoin.FunctionalTest do
       )
 
     nodes =
-      for n <- 2..100 do
+      for n <- 2..10 do
         {:ok, node} =
           Bitcoin.Node.start_link(
             ip_addr:
@@ -44,9 +44,7 @@ defmodule Bitcoin.FunctionalTest do
         node
       end
 
-    
-    Process.sleep(5000)
-
+    # Process.sleep(5_000)
     Enum.each(nodes, fn node ->
       Bitcoin.Node.start_mining(node)
     end)
@@ -58,10 +56,10 @@ defmodule Bitcoin.FunctionalTest do
         Bitcoin.Node.get_public_address(node)
       end)
 
-    Enum.each(addresses, fn address ->
-      Bitcoin.Node.transfer_money(node1, Enum.at(addresses, 0), 25, 0)
-      Process.sleep(30000)
-    end)
+    # Enum.each(addresses, fn address ->
+    #   Bitcoin.Node.transfer_money(node1, Enum.at(addresses, 0), 25, 0)
+    #   Process.sleep(30000)
+    # end)
 
     Process.sleep(100_000_000)
   end

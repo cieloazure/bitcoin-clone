@@ -1,13 +1,145 @@
 import Chart from 'chart.js';
 
-var ctx = document.getElementById("heightChart");
-var data = [
-  {
-    x: Date.UTC(),
-    y: 5 
-  },
-];
-var chart = newChart(ctx, data, 'linear');
+var height = document.getElementById("heightChart");
+var difficulty = document.getElementById("difficultyChart")
+var circulation = document.getElementById("circulationChart")
+// var tx = document.getElementById("txChart")
+// var mining = document.getElementById("miningChart")
+
+var data = [];
+// var data = [
+//   {
+//     x: 0,
+//     y: 0 
+//   },
+// ];
+
+// var testData = [
+//   {
+//     x: 0,
+//     y: 0 
+//   },
+//   {
+//     x: 1,
+//     y: 1
+//   },
+//   {
+//     x: 2,
+//     y: 2
+//   },
+//   {
+//     x: 3,
+//     y: 3
+//   }
+// ];
+
+// var heightChart = newChart(height, data, 'Height of Blockchain', 'linear');
+var heightChart = new Chart(height, {
+    type: 'line',
+    data: {
+        datasets: [{
+            data: [],
+            label: 'Left dataset',
+            borderColor: "#3e95cd",
+            fill: false,
+
+            // This binds the dataset to the left y axis
+            yAxisID: 'left-y-axis'
+        }],
+    },
+    options: {
+        title: {
+            display: true,
+            text: 'Blockchain Height'
+        },
+        scales: {
+            yAxes: [{
+                id: 'left-y-axis',
+                type: 'linear',
+                position: 'left',
+                ticks: {
+                    beginAtZero: true
+                }
+            }],
+            xAxes: [{
+                ticks: {
+                    display: false
+                }
+            }]
+        }
+    }
+});
+
+// var diffChart = newChart(difficulty, data, 'Difficulty', 'linear');
+var diffChart = new Chart(difficulty, {
+    type: 'line',
+    data: {
+        datasets: [{
+            data: [],
+            steppedLine: true,
+            borderColor: "#3e95cd",
+            fill: false,
+            yAxisID: 'left-y-axis'
+        }]
+    },
+    options: {
+        title: {
+            display: true,
+            text: 'Difficulty'
+        },
+        scales: {
+            yAxes: [{
+                id: 'left-y-axis',
+                type: 'logarithmic',
+                position: 'left',
+                ticks: {
+                    beginAtZero: true
+                }
+            }]   
+        }
+    }
+});
+
+var circChart = new Chart(circulation, {
+    type: 'line',
+    data: {
+        datasets: [{
+            data: [],
+            borderColor: "#3e95cd",
+            fill: false,
+            yAxisID: 'left-y-axis'   
+        }]
+    },
+    options: {
+        title: {
+            display: true,
+            text: 'Bitcoin in Circulation'
+        },
+        scales: {
+            yAxes: [{
+                id: 'left-y-axis',
+                type: 'logarithmic',
+                position: 'left',
+                ticks: {
+                    beginAtZero: true
+                }
+            }]   
+        }   
+    }
+})
+
+// var circChart = newChart(circulation, data, 'linear');
+// var txChart = newChart(tx, data, 'linear');
+// var miningChart = newChart(mining, data, 'linear');
+
+var chart = {
+    h: heightChart,
+    diff: diffChart,
+    circ: circChart, 
+    // transactions: txChart, 
+    // mining: miningChart
+}
+
 /*var chart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -48,10 +180,11 @@ function addData(chart, label, data) {
     chart.update();
 }
 
-function newChart(context, data, distribution) {
+function newChart(context, data, title, distribution) {
     var chart = new Chart(context, {
         type: 'line',
         data: {
+          // labels: [],
           datasets: [{
             data: data,
             borderColor: "#3e95cd",
@@ -59,10 +192,14 @@ function newChart(context, data, distribution) {
           }]
         },
         options: {
+            title: {
+                display: true,
+                text: title
+            },
             scales: {
                 xAxes: [{
-                    type: 'time',
-                    distribution: distribution
+                    type: 'linear',
+                    // distribution: 'linear'
                 }],
                 yAxes: [{
                     ticks: {

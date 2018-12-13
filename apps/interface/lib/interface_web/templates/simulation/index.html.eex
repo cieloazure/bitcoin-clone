@@ -1,9 +1,37 @@
+<head>
+<style type="text/css">
+.chart-container {
+	width: 500px !important;
+    height: 500px !important;
+}
+.container {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		justify-content: center;
+	}		
+</style>
+</head>
+
+
+
 <div class="phx-hero">
   <ul id="events">
   </ul>
-  <canvas id="heightChart" width="100" height="100"></canvas>
-  <canvas id="circulationChart" width="100" height="100"></canvas>
-  <canvas id="txChart" height="100" width="100"></canvas>>
-  <canvas id="difficultyChart" height="100" width="100"></canvas>>
-  <canvas id="miningRateChart" height="100" width="100"></canvas>>
+
+  <div class="container">
+  	<div class="chart-container">
+  		<canvas id="heightChart" width="50" height="50"></canvas>
+  	</div>
+  	<div class="chart-container">
+  		<canvas id="difficultyChart" height="100" width="100"></canvas>	
+  	</div>
+  	<div class="chart-container">
+  		<canvas id="circulationChart" width="100" height="100"></canvas>	
+  	</div>
+
+  	<%# <canvas id="txChart" height="100" width="100"></canvas>> %>
+  	<%# <canvas id="difficultyChart" height="100" width="100"></canvas> %>
+  	<%# <canvas id="miningChart" height="100" width="100"></canvas>> %>	
+  </div>
 </div>

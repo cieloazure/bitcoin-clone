@@ -13,7 +13,10 @@ defmodule InterfaceWeb.SimulationController do
     case Map.get(params, "event_name") do
       "new_block" ->
         InterfaceWeb.Endpoint.broadcast("bitcoin:simulation", "bitcoin:simulation:new_block", %{
-          height: Map.get(params, "height")
+          height: Map.get(params, "height"),
+          target: Map.get(params, "target"),
+          timestamp: Map.get(params, "timestamp"),
+          reward: Map.get(params, "reward")
         })
     end
 

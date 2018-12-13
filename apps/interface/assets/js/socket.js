@@ -8,7 +8,7 @@
 // from the params if you are not using authentication.
 import {Socket} from "phoenix"
 import chart from "./simulation"
-
+console.log("chart", chart);
 let socket = new Socket("/socket", {params: {token: window.userToken}})
 
 // When you connect, you'll often need to authenticate the client.
@@ -71,19 +71,64 @@ channel.on("bitcoin:test:new_message", (message) => {
    currentDiv.appendChild(newLi);
 });
 
+// function addData(chart, label, data) {
+//     console.log("ch", ch);
+//     console.log("labels", ch.data.labels);
+//     chart.data.labels.push(label);
+//     chart.data.datasets.forEach((dataset) => {
+//         console.log("dataset.data", dataset.data)
+//         dataset.data.push(data);
+//     });
+//     chart.update();
+// }
+
 function addData(chart, label, data) {
-    console.log(chart);
-    chart.data.labels.push(label);
+  console.log("ch", chart);
+  console.log("labels", chart.data.labels);
+
+  if (!chart.data.labels.includes(label)) {
     chart.data.datasets.forEach((dataset) => {
-        dataset.data.push(data);
+      console.log("dataset.data", dataset.data)
+
+
+      switch(chart.id) {
+        case 0:
+          if (data <= dataset.data[dataset.data.length - 1])
+            return;
+          break;
+
+        case 2:
+          console.log("!!!!!!!! data", data)
+
+          if (dataset.data.length != 0) {
+            data = dataset.data[dataset.data.length - 1] + (data / 100000000);
+            console.log("###### data", data);
+          }
+          else {
+            data = data / 100000000;
+          }
+          break;
+
+        default:
+      }
+
+      dataset.data.push(data);
     });
-    chart.update();
+
+    chart.data.labels.push(label);
+    chart.update();  
+  }
 }
 
 channel.on("bitcoin:simulation:new_block", (new_block) => {
-   console.log("message", new_block);
-   console.log("chart", chart);
-   addData(chart, new Date(new_block["timestamp"]), new_block["height"]);
+   console.log("!!!!! message", new_block);
+
+   addData(chart.h, new Date(new_block["timestamp"]), new_block["height"]);
+   addData(chart.diff, new_block["height"], new_block["target"]);
+
+   // console.log("!!!!!!! reward", new_block["reward"]);
+
+   addData(chart.circ, new_block["height"], new_block["reward"]);
 });
 
 export default socket
