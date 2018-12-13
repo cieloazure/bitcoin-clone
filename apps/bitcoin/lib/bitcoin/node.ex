@@ -53,6 +53,13 @@ defmodule Bitcoin.Node do
   end
 
   @doc """
+  Get the balance of the node's wallet
+  """
+  def get_balance(node) do
+    GenServer.call(node, {:get_balance})
+  end
+
+  @doc """
   Get the public address of the node's wallet
   """
   def get_public_address(node) do
@@ -121,6 +128,23 @@ defmodule Bitcoin.Node do
   @impl true
   def handle_call({:get_public_address}, _from, state) do
     {:reply, state[:wallet][:address], state}
+  end
+
+  @doc """
+  Bitcoin.Node.handle_call for `:get_balance`
+  """
+  def handle_call({:get_balance}, _from, state) do
+    chain = Bitcoin.Blockchain.get_chain(state[:blockchain])
+
+    balance =
+      Bitcoin.Wallet.get_balance(
+        state[:wallet][:public_key],
+        state[:wallet][:private_key],
+        chain,
+        state[:tx_pool]
+      )
+
+    {:reply, balance, state}
   end
 
   @doc """

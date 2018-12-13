@@ -47,7 +47,6 @@ defmodule Bitcoin.Wallet do
   end
 
   def get_balance(public_key, private_key, chain, tx_pool \\ []) do
-
     utxo = collect_utxo(public_key, private_key, chain, tx_pool)
     IO.inspect(utxo)
     if(!Enum.empty?(utxo)) do
