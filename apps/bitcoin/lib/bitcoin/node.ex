@@ -59,6 +59,15 @@ defmodule Bitcoin.Node do
     GenServer.call(node, {:get_public_address})
   end
 
+@doc """
+  Get the balance of the node's wallet
+  """
+  def get_balance(node) do
+    GenServer.call(node, {:get_balance})
+  end
+
+
+
   ###                      ###
   ###                      ###
   ### GenServer Callbacks  ###
@@ -316,6 +325,23 @@ defmodule Bitcoin.Node do
     {accepted_txns, _referenced_inputs} = Enum.unzip(accepted_txns)
 
     {orphan_pool, accepted_txns}
+  end
+
+  @doc """
+  Bitcoin.Node.handle_call for `:get_balance`
+  """
+  def handle_call({:get_balance}, _from, state) do
+    chain = Bitcoin.Blockchain.get_chain(state[:blockchain])
+
+    balance =
+      Bitcoin.Wallet.get_balance(
+        state[:wallet][:public_key],
+        state[:wallet][:private_key],
+        chain,
+        state[:tx_pool]
+      )
+
+    {:reply, balance, state}
   end
 
   # refresh_tx_pool

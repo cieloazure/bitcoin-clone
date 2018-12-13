@@ -56,11 +56,27 @@ defmodule Bitcoin.FunctionalTest do
         Bitcoin.Node.get_public_address(node)
       end)
 
-    # Enum.each(addresses, fn address ->
-    #   Bitcoin.Node.transfer_money(node1, Enum.at(addresses, 0), 25, 0)
-    #   Process.sleep(30000)
-    # end)
 
-    Process.sleep(100_000_000)
+    Enum.zip(nodes, addresses)
+    |>  Enum.each(fn {node, address} ->
+       Bitcoin.Node.transfer_money(node1, address , 250000, 0)
+       Bitcoin.Node.transfer_money(node, Enum.random(addresses), 12500, 0)
+       Process.sleep(10000)
+     end)
+
+    Process.sleep(100000000000)
+  end
+
+  def send_money(nodes, addresses) do
+    IO.inspect("in send money")
+    for _i <- 1..10 do
+      node = Enum.random(nodes)
+      balance = Bitcoin.Node.get_balance(node)
+
+      Bitcoin.Node.transfer_money(node, Enum.random(addresses), 0.10 * balance, 0)
+    end
+    send_money(nodes, addresses)
   end
 end
+
+
