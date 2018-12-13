@@ -17,10 +17,11 @@ defmodule Bitcoin.Utilities.EventGenerator do
     case event_name do
       "new_block_found" ->
         event_data = %{"event_name" => "new_block"}
-        event_data = Map.put(event_data, "height", Block.get_attr(payload, :height))
-        event_data = Map.put(event_data, "timestamp", Block.get_header_attr(payload, :timestamp))
-        event_data = Map.put(event_data, "bits", Block.get_header_attr(payload, :bits))
-        # "new_transaction" -> Map.from_struct(payload)  |> Map.take([:tx_id])
+        |> Map.put("height", Block.get_attr(payload, :height))
+        |> Map.put("timestamp", Block.get_header_attr(payload, :timestamp))
+        |> Map.put("target", Block.get_header_attr(payload, :bits) |> Block.calculate_target_from_bits() |> Bitcoin.Utilities.Conversions.binary_to_decimal())
+        |> Map.put("reward", Block.get_attr(payload, :height) |> Block.get_block_value(0))
+
     end
   end
 
