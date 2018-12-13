@@ -46,6 +46,15 @@ defmodule Bitcoin.Wallet do
     utxos
   end
 
+  def get_balance(public_key, private_key, chain, tx_pool \\ []) do
+    _balance =
+      collect_utxo(public_key, private_key, chain, tx_pool)
+      |> Enum.map(fn utxo -> Map.get(utxo, :amount) end)
+      |> Enum.reduce(fn amount, total ->
+        total + amount
+      end)
+  end
+
   defp verify_signature(tx_output, unlocking_script) do
     locking_script = Map.get(tx_output, :locking_script)
     script = ScriptUtil.join(unlocking_script, locking_script)
